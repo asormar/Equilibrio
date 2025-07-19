@@ -3,6 +3,7 @@ import reflex as rx
 from rxconfig import config
 
 from Equilibrio.styles import styles
+from Equilibrio.views.Clientes import Clientes
 
 
 class State(rx.State):
@@ -34,23 +35,13 @@ def index() -> rx.Component:
                     padding="5px",
                     margin="5px 0 0 5px",
                     border_radius="5px",
-                    height="300px",
+                    height="400px",
 
                 ),
 
                 rx.divider(orientation="vertical", size="4", color_scheme="cyan"),
 
-                rx.box(
-                    rx.text("Columna 2"),
-                    width="100%",
-                    max_width="95%",
-                    background_color="lightgray",
-                    padding="5px",
-                    margin="5px 5px 0 0",
-                    border_radius="5px",
-                    height="300px",
-
-                ),
+                Clientes(),
 
 
                 #spacing="0",

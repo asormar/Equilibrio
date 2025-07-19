@@ -1,0 +1,73 @@
+import reflex as rx
+
+from rxconfig import config
+
+from Equilibrio.components.dialog import Dialog
+
+
+class State(rx.State):
+    """The app state."""
+
+
+def Clientes() -> rx.Component:
+    return rx.box(
+
+        rx.text("CLIENTES"),
+        
+        Dialog(),
+
+        rx.vstack(
+
+            rx.text("CLIENTE SELECCIONADO"),
+
+            rx.hstack(
+                
+                rx.flex(
+                    rx.avatar(
+                        src="/cliente.png",
+                        radius="full",
+                        size="7"
+                    ),
+                    
+                    rx.vstack(
+                        rx.text("NOMBRE"),
+
+                        rx.flex(
+                            rx.text("PROFESION", margin_right="2em"),
+                            rx.text("FECHA DE NACIMIENTO")
+                        ),
+
+
+
+
+                        margin_top="1em",
+                        margin_left="0.5em"
+                    )
+                )
+                
+
+
+
+
+            ),
+
+            margin="1em",
+            padding="0.5em",
+            background_color="gray",
+            border_radius="5px",
+        ),
+
+
+
+
+
+        width="100%",
+        max_width="95%",
+        background_color="lightgray",
+        padding="5px",
+        margin="5px 5px 0 0",
+        border_radius="5px",
+
+    )
+
+
