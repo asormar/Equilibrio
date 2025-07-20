@@ -3,6 +3,7 @@ import reflex as rx
 from rxconfig import config
 
 from Equilibrio.components.dialog import Dialog
+from Equilibrio.components.acordion import Acordion
 
 
 class State(rx.State):
@@ -50,11 +51,14 @@ def Clientes() -> rx.Component:
 
 
             ),
+            Acordion(),
+
 
             margin="1em",
             padding="0.5em",
             background_color="gray",
             border_radius="5px",
+            
         ),
 
 

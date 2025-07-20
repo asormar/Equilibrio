@@ -15,7 +15,7 @@ def Dialog() -> rx.Component:
     rx.dialog.content(
         rx.dialog.title("Añadir Cliente"),
         rx.dialog.description(
-            "Registra a tu cliente",
+            "Registra los diferentes datos del cliente",
             size="2",
             margin_bottom="16px",
         ),

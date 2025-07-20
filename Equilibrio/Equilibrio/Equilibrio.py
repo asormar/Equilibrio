@@ -4,6 +4,7 @@ from rxconfig import config
 
 from Equilibrio.styles import styles
 from Equilibrio.views.Clientes import Clientes
+from Equilibrio.views.Mediciones import Mediciones
 
 
 class State(rx.State):
@@ -41,7 +42,18 @@ def index() -> rx.Component:
 
                 rx.divider(orientation="vertical", size="4", color_scheme="cyan"),
 
-                Clientes(),
+                rx.vstack(
+
+                    Clientes(),
+                    Mediciones(),
+                    
+
+
+
+                    width="100%",
+                    margin_right="-5.2em"
+                ),
+
 
 
                 #spacing="0",
