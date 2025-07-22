@@ -7,7 +7,7 @@ from rxconfig import config
 class State(rx.State):
     """The app state."""
 
-def Table() -> rx.Component:
+def TableClients() -> rx.Component:
     return rx.table.root(
                 rx.table.body(
                     rx.table.row(
@@ -62,4 +62,5 @@ def Table() -> rx.Component:
                     ),
                 ),
                 width="100%",
+                size="1"
             )

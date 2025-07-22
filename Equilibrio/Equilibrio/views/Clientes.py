@@ -4,6 +4,7 @@ from rxconfig import config
 
 from Equilibrio.components.dialog import Dialog
 from Equilibrio.components.acordion import Acordion
+from Equilibrio.components.table_clients import TableClients
 
 
 class State(rx.State):
@@ -15,7 +16,18 @@ def Clientes() -> rx.Component:
 
         rx.text("CLIENTES"),
         
-        Dialog(),
+        rx.hstack(
+            Dialog(),
+
+            rx.box(
+                
+                TableClients(),
+
+            )
+            
+        ),
+
+        
 
         rx.vstack(
 
@@ -66,10 +78,9 @@ def Clientes() -> rx.Component:
 
 
         width="100%",
-        max_width="95%",
         background_color="lightgray",
         padding="5px",
-        margin="5px 5px 0 0",
+        
         border_radius="5px",
 
     )

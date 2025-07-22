@@ -124,7 +124,6 @@ def Mediciones() -> rx.Component:
 
 
         width="100%",
-        max_width="95%",
         background_color="lightgray",
         padding="5px",
         margin="5px 5px 0 0",

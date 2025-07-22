@@ -24,41 +24,37 @@ def index() -> rx.Component:
 
         rx.divider( size="4", color_scheme="cyan"),
 
-        rx.flex(
+        rx.hstack(
+    
+            rx.box(
+                rx.text("Columna 1"),
+                width="5%",
+                background_color="beige",
+                padding="5px",
+                margin="5px 5px 0 10px",
+                border_radius="5px",
+                height="400px",
 
-            rx.hstack(
+            ),
+
+
+            rx.vstack(
+
+                Clientes(),
+                Mediciones(),
+                
+
+
+                width="95%",
+                margin="5px 10px 0 10px",
+            ),
+
+
+
+            spacing="0",
+            width="100%",
+            align_items="start"
         
-                rx.box(
-                    rx.text("Columna 1"),
-                    width="100%",
-                    max_width="5%",
-                    background_color="beige",
-                    padding="5px",
-                    margin="5px 0 0 5px",
-                    border_radius="5px",
-                    height="400px",
-
-                ),
-
-                rx.divider(orientation="vertical", size="4", color_scheme="cyan"),
-
-                rx.vstack(
-
-                    Clientes(),
-                    Mediciones(),
-                    
-
-
-
-                    width="100%",
-                    margin_right="-5.2em"
-                ),
-
-
-
-                #spacing="0",
-                width="100%"
-            )
         ),
         width="100%"
     )
