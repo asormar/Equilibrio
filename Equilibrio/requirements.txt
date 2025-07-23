@@ -1,2 +1,5 @@
-
 reflex==0.8.2
+reflex_chakra==0.8.1
+supabase
+dotenv
+requests

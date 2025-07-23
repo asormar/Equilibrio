@@ -22,7 +22,8 @@ def Clientes() -> rx.Component:
             rx.box(
                 
                 TableClients(),
-
+                width="50%",
+                margin="0 0 0 30px"
             )
             
         ),
