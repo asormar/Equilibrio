@@ -4,8 +4,25 @@ import reflex_chakra as rc
 from rxconfig import config
 
 
-class State(rx.State):
-    """The app state."""
+class ClientEntryModel(rx.Model, table=True):
+    """Model for client entries."""
+    
+    name: str
+    gender: str
+    birth_date: str
+    job: str
+    email: str
+    phone: str
+
+
+class FormState(rx.State):
+    form_data: dict = {}
+
+    @rx.event
+    def handle_submit(self, form_data: dict):
+        """Handle the form submit."""
+        print(form_data)
+        self.form_data = form_data
 
 
 def Dialog() -> rx.Component:
@@ -19,7 +36,7 @@ def Dialog() -> rx.Component:
             size="2",
             margin_bottom="16px",
         ),
-        rx.flex(
+        rx.form(
             rx.text(
                 "Name",
                 as_="div",
@@ -29,6 +46,7 @@ def Dialog() -> rx.Component:
             ),
             rx.input(
                 placeholder="Enter your name",
+                name="name",
             ),
             rx.text(
                 "Género",
@@ -38,7 +56,8 @@ def Dialog() -> rx.Component:
                 weight="bold",
             ),
             rx.select(
-                ["Masculino","Femenino","Otro","Intersex"]
+                ["Masculino","Femenino","Otro","Intersex"],
+                name="gender"
             ),
 
             rx.text(
@@ -50,7 +69,7 @@ def Dialog() -> rx.Component:
             ),
             rx.input(
             type="date",
-            width="12em"
+            name="birth_date",
             ),
 
             rx.text(
@@ -61,6 +80,7 @@ def Dialog() -> rx.Component:
                 weight="bold",
             ),
             rx.input(
+                name="job",
             ),
 
             rx.text(
@@ -71,6 +91,8 @@ def Dialog() -> rx.Component:
                 weight="bold",
             ),
             rx.input(
+                type="tel",
+                name="phone",
             ),
 
             rx.text(
@@ -81,26 +103,34 @@ def Dialog() -> rx.Component:
                 weight="bold",
             ),
             rx.input(
+                type="email",
+                name="email",
             ),
-            direction="column",
-            spacing="3",
-        ),
-        rx.flex(
-            rx.dialog.close(
-                rx.button(
-                    "Cancel",
-                    color_scheme="gray",
-                    variant="soft",
+
+            rx.flex(
+
+                rx.button("Save", type="submit"),
+                
+                rx.dialog.close(
+                    rx.button("Close", color_scheme="red"),
+                    
                 ),
+                spacing="3",
+                margin_top="16px",
+                justify="end",
             ),
-            rx.dialog.close(
-                rx.button("Save"),
-            ),
-            spacing="3",
-            margin_top="16px",
-            justify="end",
+
+            on_submit=FormState.handle_submit,
+            #reset_on_submit=True,
         ),
+
+        rx.divider(),
+        rx.heading("Results"),
+        rx.text(FormState.form_data.to_string()),
+
     ),
+    
+
 )
 
 

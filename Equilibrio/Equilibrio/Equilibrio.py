@@ -21,6 +21,7 @@ def index() -> rx.Component:
             margin="5px 5px 10px 5px",
             border_radius="5px"
         ),
+        
 
         rx.divider( size="4", color_scheme="cyan"),
 
@@ -62,3 +63,4 @@ def index() -> rx.Component:
 
 app = rx.App(style= styles.BASE_STYLE,)
 app.add_page(index)
+    
