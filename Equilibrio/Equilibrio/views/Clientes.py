@@ -5,6 +5,7 @@ from rxconfig import config
 from Equilibrio.components.dialog import Dialog
 from Equilibrio.components.acordion import Acordion
 from Equilibrio.components.table_clients import TableClients
+from   Equilibrio.components.dialog import FormState
 
 
 class State(rx.State):
@@ -20,9 +21,47 @@ def Clientes() -> rx.Component:
             Dialog(),
 
             rx.box(
-                
-                TableClients(),
-                width="50%",
+            
+            rx.heading("Clientes Registrados", size="4"),
+            rx.scroll_area(
+
+                rx.flex(
+                        rx.hstack(
+                        *[
+                            rx.foreach(
+                                FormState.clients,
+                                lambda client: rx.box(
+                                    rx.text(f"👤 Nombre: {client.name}"),
+                                    rx.text(f"⚧ Género: {client.gender}"),
+                                    rx.text(f"🎂 Fecha Nac.: {client.birth_date}"),
+                                    rx.text(f"💼 Ocupación: {client.job}"),
+                                    rx.text(f"📧 Email: {client.email}"),
+                                    rx.text(f"📱 Teléfono: {client.phone}"),
+                                    rx.button(
+                                        "Eliminar",
+                                        color_scheme="red",
+                                        size="2",
+                                        on_click=lambda: FormState.delete_client(client.id),
+                                        margin_top="8px"
+                                    ),
+                                    border="1px solid gray",
+                                    padding="12px",
+                                    border_radius="8px",
+                                    margin_bottom="10px",
+                                    box_shadow="10px 5px 5px gray",
+                                    min_width="300px",
+                                )
+                            )
+
+                        ]
+                        ),
+                ),
+                type="always",
+                scrollbars="horizontal",
+                style={"height": "auto", "width": "100%"},
+            ),
+                        
+                width="90%",
                 margin="0 0 0 30px"
             )
             

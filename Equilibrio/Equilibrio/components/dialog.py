@@ -1,5 +1,6 @@
 import reflex as rx
 import reflex_chakra as rc
+import asyncio
 
 from rxconfig import config
 
@@ -17,12 +18,36 @@ class ClientEntryModel(rx.Model, table=True):
 
 class FormState(rx.State):
     form_data: dict = {}
+    clients: list[ClientEntryModel] = []
 
-    @rx.event
-    def handle_submit(self, form_data: dict):
-        """Handle the form submit."""
-        print(form_data)
+    async def handle_submit(self, form_data: dict):
+        """Guardar el formulario y actualizar la lista."""
         self.form_data = form_data
+
+        with rx.session() as session:
+            new_client = ClientEntryModel(**form_data)
+            session.add(new_client)
+            session.commit()
+
+        self.load_clients()
+
+    def load_clients(self):
+            """Cargar todos los registros de la base de datos."""
+            with rx.session() as session:
+                self.clients = session.exec(ClientEntryModel.select()).all()
+
+    async def delete_client(self, client_id: int):
+        """Eliminar cliente por ID."""
+        with rx.session() as session:
+            client = session.exec(
+                ClientEntryModel.select().where(ClientEntryModel.id == client_id)
+            ).first()
+            if client:
+                session.delete(client)
+                session.commit()
+        self.load_clients()
+
+
 
 
 def Dialog() -> rx.Component:
@@ -127,6 +152,8 @@ def Dialog() -> rx.Component:
         rx.divider(),
         rx.heading("Results"),
         rx.text(FormState.form_data.to_string()),
+
+        rx.divider(),
 
     ),
     
