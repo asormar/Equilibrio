@@ -5,10 +5,13 @@ from rxconfig import config
 from Equilibrio.styles import styles
 from Equilibrio.views.Clientes import Clientes
 from Equilibrio.views.Mediciones import Mediciones
+from Equilibrio.components.dialog import FormState
 
 
 class State(rx.State):
     """The app state."""
+
+@rx.page(on_load=FormState.load_clients)
 
 
 def index() -> rx.Component:

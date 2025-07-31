@@ -37,12 +37,15 @@ def Clientes() -> rx.Component:
                                     rx.text(f"💼 Ocupación: {client.job}"),
                                     rx.text(f"📧 Email: {client.email}"),
                                     rx.text(f"📱 Teléfono: {client.phone}"),
-                                    rx.button(
-                                        "Eliminar",
-                                        color_scheme="red",
-                                        size="2",
-                                        on_click=lambda: FormState.delete_client(client.id),
-                                        margin_top="8px"
+
+                                    rx.hstack(
+                                        rx.button(
+                                            "Eliminar",
+                                            color_scheme="red",
+                                            size="2",
+                                            on_click=lambda: FormState.delete_client(client.id), # Sin lambda se ejecutaría automáticamente al cargar la página
+                                            margin_top="8px"
+                                        ),
                                     ),
                                     border="1px solid gray",
                                     padding="12px",
