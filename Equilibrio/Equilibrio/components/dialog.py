@@ -4,17 +4,7 @@ import asyncio
 
 from rxconfig import config
 
-
-class ClientEntryModel(rx.Model, table=True):
-    """Model for client entries."""
-    
-    name: str
-    gender: str
-    birth_date: str
-    job: str
-    email: str
-    phone: str
-
+from Equilibrio.database.models import ClientEntryModel
 
 class FormState(rx.State):
     form_data: dict = {}
@@ -46,6 +36,13 @@ class FormState(rx.State):
                 session.delete(client)
                 session.commit()
         self.load_clients()
+
+
+    # Para seleccionar un cliente y mostrar sus mediciones
+    selected_client_id: int | None = None
+
+    def select_client(self, client_id: int):
+        self.selected_client_id = client_id
 
 
 
