@@ -6,6 +6,10 @@ from Equilibrio.components.dialog import Dialog
 from Equilibrio.components.acordion import Acordion
 from Equilibrio.components.table_clients import TableClients
 from Equilibrio.components.dialog import FormState
+from Equilibrio.components.acordion import AcordionState
+from Equilibrio.views.Mediciones import MeasurementState
+
+
 
 
 class State(rx.State):
@@ -54,7 +58,12 @@ def Clientes() -> rx.Component:
                                                 color_scheme="blue",
                                                 size="2",
                                                 margin_top="1em",
-                                                on_click=FormState.select_client(client.id)
+                                                on_click=[
+                                                    FormState.select_client(client.id),  # tu acción existente
+                                                    MeasurementState.load_measurements(client.id),
+                                                    AcordionState.close_accordion(),             # cierra el acordeón
+                                                      # carga las mediciones del cliente seleccionado
+                                                ],
 
                                             ),
                                         ),
@@ -86,7 +95,7 @@ def Clientes() -> rx.Component:
         rx.vstack(
 
             rx.text("CLIENTE SELECCIONADO"),
-            rx.text(FormState.selected_client_id.to_string()),
+            rx.text(f"{FormState.selected_client_name} ID: {FormState.selected_client_id}"),
 
             rx.hstack(
                 
@@ -98,11 +107,11 @@ def Clientes() -> rx.Component:
                     ),
                     
                     rx.vstack(
-                        rx.text("NOMBRE"),
+                        rx.text(FormState.selected_client_name),
 
                         rx.flex(
-                            rx.text("PROFESION", margin_right="2em"),
-                            rx.text("FECHA DE NACIMIENTO")
+                            rx.text(FormState.selected_client_job, margin_right="2em"),
+                            rx.text(FormState.selected_client_birth_date),
                         ),
 
 

@@ -38,12 +38,43 @@ class FormState(rx.State):
         self.load_clients()
 
 
-    # Para seleccionar un cliente y mostrar sus mediciones
+    # Campos seleccionados del cliente
     selected_client_id: int | None = None
+    selected_client_name: str = ""
+    selected_client_gender: str = ""
+    selected_client_birth_date: str = ""
+    selected_client_job: str = ""
+    selected_client_email: str = ""
+    selected_client_phone: str = ""
 
     def select_client(self, client_id: int):
+        """Selecciona un cliente y guarda todos sus datos en el estado."""
         self.selected_client_id = client_id
 
+        # Buscar primero en la lista cargada
+        client = next((c for c in self.clients if c.id == client_id), None)
+
+        # Si no está en la lista, lo traigo desde la DB
+        if client is None:
+            with rx.session() as session:
+                client = session.get(ClientEntryModel, client_id)
+
+        # Guardar los datos si lo encontramos
+        if client:
+            self.selected_client_name = client.name
+            self.selected_client_gender = client.gender
+            self.selected_client_birth_date = client.birth_date
+            self.selected_client_job = client.job
+            self.selected_client_email = client.email
+            self.selected_client_phone = client.phone
+        else:
+            # Si no se encuentra, dejar todo vacío
+            self.selected_client_name = ""
+            self.selected_client_gender = ""
+            self.selected_client_birth_date = ""
+            self.selected_client_job = ""
+            self.selected_client_email = ""
+            self.selected_client_phone = ""
 
 
 

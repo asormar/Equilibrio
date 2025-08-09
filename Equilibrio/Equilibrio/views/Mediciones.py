@@ -14,6 +14,18 @@ class MeasurementState(rx.State):
     async def add_measurement(self, meditions_data: dict):
         print(f"Datos de la medición: {meditions_data}")
 
+        # Si viene la fecha vacía, se quita para que se use la automática
+        if not meditions_data.get("date"):
+            meditions_data.pop("date", None)
+
+        # Reemplazar valores "" por 0 en campos numéricos
+        for field in ["weight", "height", "hip", "waist"]:
+            if meditions_data.get(field, "") == "":
+                meditions_data[field] = 0
+            else:
+                # Opcional: convertir a float para que no haya errores si llega como string numérico
+                meditions_data[field] = float(meditions_data[field])
+
         with rx.session() as session:
             measurement = MeasurementModel(**meditions_data)
             print(measurement)
@@ -26,6 +38,10 @@ class MeasurementState(rx.State):
 
 
     def load_measurements(self, client_id: int):
+        if client_id is None:
+            self.measurements = []
+            return
+        
         with rx.session() as session:
             self.measurements = session.exec(
                 MeasurementModel.select().where(MeasurementModel.client_id == client_id)
@@ -51,12 +67,14 @@ def Mediciones() -> rx.Component:
                             rx.text("Peso"),
                             rx.input(
                                 width="100%",
-                                name="weight"),
+                                name="weight",
+                                default_value=""),
 
                             rx.text("Altura"),
                             rx.input(
                                 width="100%",
-                                name="height"),
+                                name="height",
+                                default_value=""),
                             
 
                             width="100%"
@@ -66,18 +84,18 @@ def Mediciones() -> rx.Component:
                             rx.text("Perímetro Cadera"),
                             rx.input(
                                 width="100%",
-                                name="hip"),
+                                name="hip",
+                                default_value=""),
 
                             rx.text("Perímetro de la cintura"),
                             rx.input(
                                 width="100%",
-                                name="waist"),
+                                name="waist",
+                                default_value=""),
 
 
                             width="100%"
                         ),
-
-                        rx.input(name="date", type="date"),
                         rx.input(
                             type="hidden",
                             name="client_id",
