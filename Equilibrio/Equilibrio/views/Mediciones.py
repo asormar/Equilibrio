@@ -4,6 +4,7 @@ from rxconfig import config
 
 from Equilibrio.components.scrollarea import ScrollArea
 from Equilibrio.components.linechart import Linechart
+from Equilibrio.components.table_chart import TableChart
 from Equilibrio.database.models import MeasurementModel
 from Equilibrio.components.dialog import FormState
 
@@ -143,20 +144,6 @@ def Mediciones() -> rx.Component:
 
             rx.hstack(
                 rx.vstack(
-                    rx.text("AÑADIR MEDICIÓN DE ..."),
-
-                    rx.flex(
-
-                        rx.input(
-                            type="date",
-                        ),
-                        rx.input(),
-                        rx.select(
-                            ["kg","lb","oz"]
-                        ),
-                        rx.button("Registrar"),
-
-                    ),
 
                     rx.text("PROGRESO"),
                     Linechart(),
@@ -169,7 +156,7 @@ def Mediciones() -> rx.Component:
                 rx.vstack(
 
                     rx.text("ÚLTIMAS MEDICIONES DE ..."),
-                    ScrollArea(),
+                    ScrollArea(TableChart()),
 
 
 

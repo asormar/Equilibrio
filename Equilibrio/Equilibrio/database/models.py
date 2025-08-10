@@ -15,7 +15,7 @@ class ClientEntryModel(rx.Model, table=True):
 
 class SecondaryDataModel(rx.Model, table=True):
     """Model for secondary data of clients."""
-    
+    client_id: int = Field(foreign_key="cliententrymodel.id")
     direction: str
     country: str
 

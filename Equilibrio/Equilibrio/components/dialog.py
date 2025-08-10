@@ -4,7 +4,7 @@ import asyncio
 
 from rxconfig import config
 
-from Equilibrio.database.models import ClientEntryModel
+from Equilibrio.database.models import ClientEntryModel, SecondaryDataModel
 
 class FormState(rx.State):
     form_data: dict = {}
@@ -21,10 +21,11 @@ class FormState(rx.State):
 
         self.load_clients()
 
-    def load_clients(self):
-            """Cargar todos los registros de la base de datos."""
-            with rx.session() as session:
-                self.clients = session.exec(ClientEntryModel.select()).all()
+    async def load_clients(self):
+        """Cargar todos los registros de la base de datos."""
+        with rx.session() as session:
+            self.clients = session.exec(ClientEntryModel.select()).all()
+
 
     async def delete_client(self, client_id: int):
         """Eliminar cliente por ID."""
@@ -47,6 +48,10 @@ class FormState(rx.State):
     selected_client_email: str = ""
     selected_client_phone: str = ""
 
+    # Datos secundarios
+    selected_client_country: str = ""
+    selected_client_direction: str = ""
+
     def select_client(self, client_id: int):
         """Selecciona un cliente y guarda todos sus datos en el estado."""
         self.selected_client_id = client_id
@@ -54,12 +59,10 @@ class FormState(rx.State):
         # Buscar primero en la lista cargada
         client = next((c for c in self.clients if c.id == client_id), None)
 
-        # Si no está en la lista, lo traigo desde la DB
         if client is None:
             with rx.session() as session:
                 client = session.get(ClientEntryModel, client_id)
 
-        # Guardar los datos si lo encontramos
         if client:
             self.selected_client_name = client.name
             self.selected_client_gender = client.gender
@@ -67,14 +70,29 @@ class FormState(rx.State):
             self.selected_client_job = client.job
             self.selected_client_email = client.email
             self.selected_client_phone = client.phone
+
+            # --- Cargar datos secundarios ---
+            with rx.session() as session:
+                secondary = session.exec(
+                    SecondaryDataModel.select().where(SecondaryDataModel.client_id == client_id)
+                ).first()
+                if secondary:
+                    self.selected_client_country = secondary.country
+                    self.selected_client_direction = secondary.direction
+                else:
+                    self.selected_client_country = ""
+                    self.selected_client_direction = ""
+
         else:
-            # Si no se encuentra, dejar todo vacío
             self.selected_client_name = ""
             self.selected_client_gender = ""
             self.selected_client_birth_date = ""
             self.selected_client_job = ""
             self.selected_client_email = ""
             self.selected_client_phone = ""
+            self.selected_client_country = ""
+            self.selected_client_direction = ""
+
 
 
 
@@ -162,7 +180,7 @@ def Dialog() -> rx.Component:
 
             rx.flex(
 
-                rx.button("Save", type="submit"),
+                rx.button("Save", type="submit", on_click=FormState.load_clients),
                 
                 rx.dialog.close(
                     rx.button("Close", color_scheme="red"),

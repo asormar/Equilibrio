@@ -4,26 +4,80 @@ import reflex_chakra as rc
 from rxconfig import config
 
 from Equilibrio.components.dialog import FormState
-from Equilibrio.database.models import ClientEntryModel
+from Equilibrio.database.models import ClientEntryModel, SecondaryDataModel
+
+import asyncio
 
 
 class AcordionState(rx.State):
-    accordion_value: str = "item1"  # abierto por defecto
+    accordion_value: str = "item1"
 
-    def close_accordion(self):
-        self.accordion_value = "None"  # lo cierra
+    accordion_disabled: bool = False  # 🔹 nuevo estado para bloquear el acordeón temporalmente
 
 
-    def modify_user(self):
+    async def close_accordion(self):
+        self.accordion_value = "None"
+
+    async def pause_accordion(self):
+        """Deshabilita el acordeón temporalmente."""
+        self.accordion_value = "None"
+        self.accordion_disabled = True
+        await asyncio.sleep(6)
+        self.accordion_disabled = False
+        
+
+    selected_client_direction: str = ""
+    selected_client_country: str = ""
+
+    async def modify_user(self, form_data: dict):
+        """Modificar el cliente y sus datos secundarios."""
+        client_id = int(form_data.get("client_id"))
+
         with rx.session() as session:
-            client_modificating = session.exec(ClientEntryModel.select().where(ClientEntryModel.id == FormState.selected_client_id)).all()
-            print(f"Modificando cliente: {client_modificating}")
-            #client.gender = self.gender
-            #client.birth_date = self.birth_date
-            #client.email = self.email
-            #client.phone = self.phone
-            #session.add(client)
-            #session.commit()
+            # --- Actualizar datos del cliente principal ---
+            client = session.get(ClientEntryModel, client_id)
+            if client:
+                client.gender = form_data.get("gender", client.gender)
+                client.birth_date = form_data.get("birth_date", client.birth_date)
+                client.email = form_data.get("email", client.email)
+                client.phone = form_data.get("phone", client.phone)
+                session.add(client)
+
+            # --- Actualizar datos secundarios ---
+            secondary = session.exec(
+                SecondaryDataModel.select().where(SecondaryDataModel.client_id == client_id)
+            ).first()
+
+            if secondary is None:
+                # Si no existe, lo creamos
+                secondary = SecondaryDataModel(
+                    client_id=client_id,
+                    country=form_data.get("country", ""),
+                    direction=form_data.get("direction", "")
+                )
+            else:
+                # Si existe, lo actualizamos
+                secondary.country = form_data.get("country", secondary.country)
+                secondary.direction = form_data.get("direction", secondary.direction)
+
+            self.selected_client_direction = secondary.direction
+            self.selected_client_country = secondary.country
+
+            session.add(secondary)
+            session.commit()
+
+        # Devuelvo eventos para que Reflex recargue la UI
+        return [
+            FormState.load_clients(),
+            FormState.select_client(client_id),
+            AcordionState.close_accordion(),
+            AcordionState.pause_accordion(),
+        ]
+
+
+
+
+
 
 
 def Acordion() -> rx.Component:
@@ -35,7 +89,13 @@ def Acordion() -> rx.Component:
             content=rx.form(
                 rx.hstack(
 
-                    
+                    rx.input(
+                        type="hidden",
+                        name="client_id",
+                        value=FormState.selected_client_id
+                    ),
+
+
 
                     rx.box(
                         rx.text("Género"),
@@ -48,13 +108,13 @@ def Acordion() -> rx.Component:
                         rx.input(
                             width="100%",
                             name="country",
-                            default_value="España"),
+                            default_value=FormState.selected_client_country),
 
                         rx.text("Dirección"),
                         rx.input(
                             width="100%",
                             name="direction",
-                            default_value="Calle Colón"),
+                            default_value=FormState.selected_client_direction),
                         
 
                         width="100%"
@@ -106,6 +166,7 @@ def Acordion() -> rx.Component:
         color_scheme="gray",
         variant="surface",
         show_dividers=False,
+        disabled=AcordionState.accordion_disabled,  # bloquea el acordeón si es necesario
 
         value=AcordionState.accordion_value,  # controlado por el estado
         on_value_change=lambda v: AcordionState.set_accordion_value(v)  # sincroniza si el usuario abre/cierra manualmente

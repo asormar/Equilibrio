@@ -9,11 +9,11 @@ from Equilibrio.components.table_chart import TableChart
 class State(rx.State):
     """The app state."""
 
-def ScrollArea() -> rx.Component:
+def ScrollArea(cosa) -> rx.Component:
     return rx.scroll_area(
 
         rx.flex(
-            TableChart()
+            cosa #Aqui va TableChart
         ),
         type="always",
         scrollbars="vertical",
