@@ -34,6 +34,7 @@ class MeasurementState(rx.State):
             session.commit()
 
         self.load_measurements(int(meditions_data["client_id"]))
+        print(f"Mediciones después de agregar: {self.measurements}")
 
 
 
@@ -47,6 +48,27 @@ class MeasurementState(rx.State):
             self.measurements = session.exec(
                 MeasurementModel.select().where(MeasurementModel.client_id == client_id)
             ).all()
+
+
+    select_value: str = "PESO"
+    def change_value(self, select_value: str):
+        """Change the select value var."""
+        self.select_value = select_value
+
+    
+    @rx.var
+    def measurements_chart(self) -> list[dict]:
+        """Devuelve las mediciones en formato dict para Recharts."""
+        return [
+            {
+                "date": str(m.date),      # asegúrate de que sea string o formato ISO
+                "weight": m.weight,
+                "height": m.height,
+                "hip": m.hip,
+                "waist": m.waist,
+            }
+            for m in self.measurements
+        ]
 
 
 
@@ -146,17 +168,23 @@ def Mediciones() -> rx.Component:
                 rx.vstack(
 
                     rx.text("PROGRESO"),
-                    Linechart(),
+                    Linechart(MeasurementState.measurements_chart, MeasurementState.select_value),
                     
 
 
                     width="100%"
                 ),
 
+                rx.spacer(),
+
                 rx.vstack(
 
-                    rx.text("ÚLTIMAS MEDICIONES DE ..."),
-                    ScrollArea(TableChart()),
+                    rx.flex(
+                        rx.text("ÚLTIMAS MEDICIONES DE"),
+                        rx.select(["PESO", "ALTURA", "CADERA", "CINTURA", "TODO"], name="measurement_type", default_value="PESO", size="1", on_change=MeasurementState.change_value),
+                    ),
+
+                    ScrollArea(TableChart(MeasurementState.measurements, MeasurementState.select_value)),
 
 
 

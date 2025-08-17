@@ -1,65 +1,68 @@
+# components/table_chart.py
 import reflex as rx
-import reflex_chakra as rc
 
-from rxconfig import config
-
-
-class State(rx.State):
-    """The app state."""
-
-def TableChart() -> rx.Component:
-    return rx.table.root(
-                rx.table.body(
-                    rx.table.row(
-                        rx.table.row_header_cell("07/09/2025"),
-                        rx.table.cell("130 kg"),
-                        rx.table.cell(""),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("08/09/2025"),
-                        rx.table.cell("129 kg"),
-                        rx.table.cell("-1 %"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("09/09/2025"),
-                        rx.table.cell("129.3"),
-                        rx.table.cell("+0.2%"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("10/09/2025"),
-                        rx.table.cell("129.1"),
-                        rx.table.cell("-0.2%"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("11/09/2025"),
-                        rx.table.cell("128.6"),
-                        rx.table.cell("-0.7%"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("11/09/2025"),
-                        rx.table.cell("128.6"),
-                        rx.table.cell("-0.7%"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("11/09/2025"),
-                        rx.table.cell("128.6"),
-                        rx.table.cell("-0.7%"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("11/09/2025"),
-                        rx.table.cell("128.6"),
-                        rx.table.cell("-0.7%"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("11/09/2025"),
-                        rx.table.cell("128.6"),
-                        rx.table.cell("-0.7%"),
-                    ),
-                    rx.table.row(
-                        rx.table.row_header_cell("11/09/2025"),
-                        rx.table.cell("128.6"),
-                        rx.table.cell("-0.7%"),
+def TableChart(medidas, mode) -> rx.Component:
+    def generar_fila(m):
+        return rx.cond(
+            mode == "PESO", [m.date, m.weight],
+            rx.cond(
+                mode == "ALTURA", [m.date, m.height],
+                rx.cond(
+                    mode == "CADERA", [m.date, m.hip],
+                    rx.cond(
+                        mode == "CINTURA", [m.date, m.waist],
+                        [m.date, m.weight, m.height, m.hip, m.waist],
                     ),
                 ),
+            ),
+        )
+
+    # Cabeceras según modo
+    headers = rx.cond(
+        mode == "PESO", ["Fecha", "Peso (kg)"],
+        rx.cond(
+            mode == "ALTURA", ["Fecha", "Altura (cm)"],
+            rx.cond(
+                mode == "CADERA", ["Fecha", "Cadera (cm)"],
+                rx.cond(
+                    mode == "CINTURA", ["Fecha", "Cintura (cm)"],
+                    ["Fecha", "Peso (kg)", "Altura (cm)", "Cadera (cm)", "Cintura (cm)"],
+                ),
+            ),
+        ),
+    )
+
+    # Fila de cabeceras
+    header_row = rx.hstack(
+        rx.foreach(
+            headers,
+            lambda h: rx.text(h, font_weight="bold", width="100%"),
+        ),
+        rx.spacer(),
+        width="100%",
+        margin_bottom="10px",
+    )
+
+    # Cada fila como hstack de valores
+    data_rows = rx.vstack(
+        rx.foreach(
+            medidas,
+            lambda m: rx.hstack(
+                rx.foreach(
+                    generar_fila(m),
+                    lambda value: rx.text(value, width="100%"),
+                ),
+                rx.spacer(),
                 width="100%",
-            )
+            ),
+        ),
+        rx.spacer(),
+        width="100%",
+    )
+
+    return rx.vstack(
+        header_row,
+        data_rows,
+        rx.spacer(),
+        width="100%",
+    )
