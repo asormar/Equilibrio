@@ -1,68 +1,114 @@
-# components/table_chart.py
 import reflex as rx
 
-def TableChart(medidas, mode) -> rx.Component:
-    def generar_fila(m):
-        return rx.cond(
-            mode == "PESO", [m.date, m.weight],
-            rx.cond(
-                mode == "ALTURA", [m.date, m.height],
-                rx.cond(
-                    mode == "CADERA", [m.date, m.hip],
-                    rx.cond(
-                        mode == "CINTURA", [m.date, m.waist],
-                        [m.date, m.weight, m.height, m.hip, m.waist],
+import reflex_chakra as rc
+
+from rxconfig import config
+
+
+class State(rx.State):
+    
+    """The app state."""
+
+
+def TableChart(medidas, mode, diferencia) -> rx.Component:
+
+    return rx.table.root(
+
+                rx.table.header(
+                    rx.table.row(
+                        rx.table.column_header_cell("Date"),
+
+                        rx.cond(
+                            mode == "PESO",
+                            rx.fragment(
+                                rx.table.column_header_cell("Peso"),
+                                rx.table.column_header_cell("Change (%)")
+                            )
+                        ),
+
+                        rx.cond(
+                            mode == "ALTURA",
+                            rx.fragment(
+                                rx.table.column_header_cell("Altura"),
+                                rx.table.column_header_cell("Change (%)")
+                            )
+                        ),
+
+                        rx.cond(
+                            mode == "CADERA",
+                            rx.fragment(
+                                rx.table.column_header_cell("Cadera"),
+                                rx.table.column_header_cell("Change (%)")
+                            )
+                        ),
+
+                        rx.cond(
+                            mode == "CINTURA",
+                            rx.fragment(
+                                rx.table.column_header_cell("Cintura"),
+                                rx.table.column_header_cell("Change (%)")
+                            )
+                        ),
+                        rx.cond(
+                            mode == "TODO",
+                            rx.fragment(
+                                rx.table.column_header_cell("Peso"),
+                                rx.table.column_header_cell("Altura"),
+                                rx.table.column_header_cell("Cadera"),
+                                rx.table.column_header_cell("Cintura"),
+                            ),
+
+                        ),
+                        
+
+                        
                     ),
                 ),
-            ),
+
+                rx.table.body(
+                    rx.foreach(
+                        medidas[::-1],
+                        lambda md, idx: rx.table.row(
+                            rx.table.row_header_cell(md.date),
+                            rx.cond(
+                                mode == "PESO",
+                                rx.fragment(
+                                    rx.table.cell(md.weight),
+                                    rx.table.cell(diferencia[-idx])
+                                )
+                            ),
+                            rx.cond(
+                                mode == "ALTURA",
+                                rx.fragment(
+                                    rx.table.cell(md.height),
+                                    rx.table.cell(diferencia[idx])
+                                )
+                            ),
+                            rx.cond(
+                                mode == "CADERA",
+                                rx.fragment(
+                                    rx.table.cell(md.hip),
+                                    rx.table.cell(diferencia[idx])
+                                )
+                            ),
+                            rx.cond(
+                                mode == "CINTURA",
+                                rx.fragment(
+                                    rx.table.cell(md.waist),
+                                    rx.table.cell(diferencia[idx])
+                                )
+                            ),
+                            rx.cond(
+                                mode == "TODO",
+                                rx.fragment(
+                                    rx.table.cell(md.weight),
+                                    rx.table.cell(md.height),
+                                    rx.table.cell(md.hip),
+                                    rx.table.cell(md.waist),
+                                )
+                            ),
+                        )
+                    )
+                )
+
         )
-
-    # Cabeceras según modo
-    headers = rx.cond(
-        mode == "PESO", ["Fecha", "Peso (kg)"],
-        rx.cond(
-            mode == "ALTURA", ["Fecha", "Altura (cm)"],
-            rx.cond(
-                mode == "CADERA", ["Fecha", "Cadera (cm)"],
-                rx.cond(
-                    mode == "CINTURA", ["Fecha", "Cintura (cm)"],
-                    ["Fecha", "Peso (kg)", "Altura (cm)", "Cadera (cm)", "Cintura (cm)"],
-                ),
-            ),
-        ),
-    )
-
-    # Fila de cabeceras
-    header_row = rx.hstack(
-        rx.foreach(
-            headers,
-            lambda h: rx.text(h, font_weight="bold", width="100%"),
-        ),
-        rx.spacer(),
-        width="100%",
-        margin_bottom="10px",
-    )
-
-    # Cada fila como hstack de valores
-    data_rows = rx.vstack(
-        rx.foreach(
-            medidas,
-            lambda m: rx.hstack(
-                rx.foreach(
-                    generar_fila(m),
-                    lambda value: rx.text(value, width="100%"),
-                ),
-                rx.spacer(),
-                width="100%",
-            ),
-        ),
-        rx.spacer(),
-        width="100%",
-    )
-
-    return rx.vstack(
-        header_row,
-        data_rows,
-        rx.spacer(),
-        width="100%",
-    )

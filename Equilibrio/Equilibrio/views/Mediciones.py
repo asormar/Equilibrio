@@ -34,7 +34,7 @@ class MeasurementState(rx.State):
             session.commit()
 
         self.load_measurements(int(meditions_data["client_id"]))
-        print(f"Mediciones después de agregar: {self.measurements}")
+        print(f"Mediciones después de agregar: {self.measurements[-1]}")
 
 
 
@@ -55,6 +55,7 @@ class MeasurementState(rx.State):
         """Change the select value var."""
         self.select_value = select_value
 
+
     
     @rx.var
     def measurements_chart(self) -> list[dict]:
@@ -69,6 +70,56 @@ class MeasurementState(rx.State):
             }
             for m in self.measurements
         ]
+    
+
+    @rx.var
+    def calculo(self) -> list[str]:
+        """Calcula la diferencia para cada medición según el select_value."""
+        
+        # Lista que almacenará las diferencias para cada fila
+        diferencias_por_fila = []
+
+        # Recorremos todas las mediciones
+        for i, medicion_actual in enumerate(self.measurements):
+
+            # La primera medición no tiene anterior, por lo que la diferencia queda vacía
+            if i == 0:
+                diferencias_por_fila.append("")
+                continue
+
+            # Obtenemos la medición anterior
+            medicion_anterior = self.measurements[i - 1]
+
+            # Inicializamos la variable de diferencia
+            diferencia = ""
+
+            # Calculamos la diferencia según el tipo seleccionado
+            if self.select_value == "PESO":
+                diferencia_valor = (medicion_actual.weight - medicion_anterior.weight) / medicion_actual.weight * 100
+                diferencia = f"{diferencia_valor:.2f} %"
+            elif self.select_value == "ALTURA":
+                diferencia_valor = (medicion_actual.height - medicion_anterior.height) / medicion_actual.height * 100
+                diferencia = f"{diferencia_valor:.2f} %"
+            elif self.select_value == "CADERA":
+                diferencia_valor = (medicion_actual.hip - medicion_anterior.hip) / medicion_actual.hip * 100
+                diferencia = f"{diferencia_valor:.2f} %"
+            elif self.select_value == "CINTURA":
+                diferencia_valor = (medicion_actual.waist - medicion_anterior.waist) / medicion_actual.waist * 100
+                diferencia = f"{diferencia_valor:.2f} %"
+            elif self.select_value == "TODO":
+                # Para TODO no calculamos diferencia
+                diferencia = ""
+
+            # Añadimos la diferencia calculada a la lista
+            diferencias_por_fila.append(diferencia)
+
+        # Devolvemos la lista completa de diferencias
+        return diferencias_por_fila
+
+
+            
+
+    
 
 
 
@@ -184,8 +235,9 @@ def Mediciones() -> rx.Component:
                         rx.select(["PESO", "ALTURA", "CADERA", "CINTURA", "TODO"], name="measurement_type", default_value="PESO", size="1", on_change=MeasurementState.change_value),
                     ),
 
-                    ScrollArea(TableChart(MeasurementState.measurements, MeasurementState.select_value)),
+                    ScrollArea(TableChart(MeasurementState.measurements, MeasurementState.select_value, MeasurementState.calculo)),
 
+                    #rx.text(MeasurementState.calculo),
 
 
                     width="100%"
