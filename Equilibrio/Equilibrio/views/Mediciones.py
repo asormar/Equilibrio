@@ -48,21 +48,52 @@ class MeasurementState(rx.State):
         
         with rx.session() as session:
             self.measurements = session.exec(
-                select(MeasurementModel.weight).where(MeasurementModel.client_id == client_id)
-            ).first()
+                MeasurementModel.select().where(MeasurementModel.client_id == client_id)
+            ).all()
 
 
-
-    async def delete_measurements(self, client_id: int, medida_mode):
-        """Eliminar medida por ID."""
+    async def delete_specific_measurement(self, client_id: int, field_type: str):
+        """Eliminar un campo específico de la última medida."""
         with rx.session() as session:
-            medida_a_eliminar = session.exec(
-                MeasurementModel.weight.select().where(MeasurementModel.client_id == client_id)
+            ultimo_registro = session.exec(
+                select(MeasurementModel)
+                .where(MeasurementModel.client_id == client_id)
+                .order_by(MeasurementModel.id.desc())
             ).first()
-            if medida_a_eliminar:
-                session.delete(medida_a_eliminar)
+            
+            if ultimo_registro:
+                # Actualizar solo el campo específico a 0
+                if field_type == "PESO":
+                    ultimo_registro.weight = 0
+                elif field_type == "ALTURA":
+                    ultimo_registro.height = 0
+                elif field_type == "CADERA":
+                    ultimo_registro.hip = 0
+                elif field_type == "CINTURA":
+                    ultimo_registro.waist = 0
+                
+                session.add(ultimo_registro)
                 session.commit()
-        self.load_measurements()
+                print(f"Campo {field_type} del registro {ultimo_registro.id} actualizado a 0")
+        
+        # Recargar las mediciones
+        self.load_measurements(client_id)
+
+    async def delete_measurements(self, client_id: int, medida_mode: str = None):
+        """Eliminar la última medida por client_id."""
+        with rx.session() as session:
+            ultimo_registro = session.exec(
+                select(MeasurementModel)
+                .where(MeasurementModel.client_id == client_id)
+                .order_by(MeasurementModel.id.desc())  # Orden descendente por ID
+            ).first()
+            print(f"Eliminando registro: {ultimo_registro}")
+            if ultimo_registro:
+                session.delete(ultimo_registro)
+                session.commit()
+        
+        # Recargar las mediciones después de eliminar
+        self.load_measurements(client_id)
 
 
     select_value: str = "PESO"
@@ -83,6 +114,7 @@ class MeasurementState(rx.State):
                 "hip": m.hip,
                 "waist": m.waist,
             }
+            
             for m in self.measurements
         ]
     
@@ -100,42 +132,45 @@ class MeasurementState(rx.State):
         for i, medicion_actual in enumerate(self.measurements):
 
             
+            try:
+                # La primera medición no tiene anterior, por lo que la diferencia queda vacía
+                if i == 0:
+                    diferencias_por_fila.append("")
+                    continue
 
-            # La primera medición no tiene anterior, por lo que la diferencia queda vacía
-            if i == 0:
-                diferencias_por_fila.append("")
-                continue
+                # Obtenemos la medición anterior
+                medicion_anterior = self.measurements[i - 1]
 
-            # Obtenemos la medición anterior
-            medicion_anterior = self.measurements[i - 1]
+                #print(medicion_actual)
+                #print(medicion_anterior)
+                
 
-            #print(medicion_actual)
-            #print(medicion_anterior)
-            
-
-            # Inicializamos la variable de diferencia
-            diferencia = ""
-
-            # Calculamos la diferencia según el tipo seleccionado
-            if self.select_value == "PESO":
-                diferencia_valor = (medicion_actual.weight - medicion_anterior.weight) / medicion_actual.weight * 100
-                diferencia = f"{diferencia_valor:.2f} %"
-            elif self.select_value == "ALTURA":
-                diferencia_valor = (medicion_actual.height - medicion_anterior.height) / medicion_actual.height * 100
-                diferencia = f"{diferencia_valor:.2f} %"
-            elif self.select_value == "CADERA":
-                diferencia_valor = (medicion_actual.hip - medicion_anterior.hip) / medicion_actual.hip * 100
-                diferencia = f"{diferencia_valor:.2f} %"
-            elif self.select_value == "CINTURA":
-                diferencia_valor = (medicion_actual.waist - medicion_anterior.waist) / medicion_actual.waist * 100
-                diferencia = f"{diferencia_valor:.2f} %"
-            elif self.select_value == "TODO":
-                # Para TODO no calculamos diferencia
+                # Inicializamos la variable de diferencia
                 diferencia = ""
 
-            
-            if "-" not in diferencia and diferencia != "0.00 %":
-                diferencia= "+"+diferencia
+                # Calculamos la diferencia según el tipo seleccionado
+                if self.select_value == "PESO":
+                    diferencia_valor = (medicion_actual.weight - medicion_anterior.weight) / medicion_actual.weight * 100
+                    diferencia = f"{diferencia_valor:.2f} %"
+                elif self.select_value == "ALTURA":
+                    diferencia_valor = (medicion_actual.height - medicion_anterior.height) / medicion_actual.height * 100
+                    diferencia = f"{diferencia_valor:.2f} %"
+                elif self.select_value == "CADERA":
+                    diferencia_valor = (medicion_actual.hip - medicion_anterior.hip) / medicion_actual.hip * 100
+                    diferencia = f"{diferencia_valor:.2f} %"
+                elif self.select_value == "CINTURA":
+                    diferencia_valor = (medicion_actual.waist - medicion_anterior.waist) / medicion_actual.waist * 100
+                    diferencia = f"{diferencia_valor:.2f} %"
+                elif self.select_value == "TODO":
+                    # Para TODO no calculamos diferencia
+                    diferencia = ""
+
+                
+                if "-" not in diferencia and diferencia != "0.00 %":
+                    diferencia= "+"+diferencia
+
+            except ZeroDivisionError:
+                diferencia=""
 
 
             # Añadimos la diferencia calculada a la lista
@@ -268,7 +303,7 @@ def Mediciones() -> rx.Component:
                         rx.select(["PESO", "ALTURA", "CADERA", "CINTURA", "TODO"], name="measurement_type", default_value="PESO", size="1", on_change=MeasurementState.change_value),
                     ),
 
-                    ScrollArea(TableChart(MeasurementState.measurements, MeasurementState.select_value, MeasurementState.calculo)),
+                    ScrollArea(TableChart(MeasurementState.measurements, MeasurementState.select_value, MeasurementState.calculo, MeasurementState.delete_measurements, MeasurementState.delete_specific_measurement)),
 
                     #rx.text(MeasurementState.calculo),
 

@@ -10,7 +10,7 @@ class State(rx.State):
     """The app state."""
 
 
-def TableChart(medidas, mode, diferencia) -> rx.Component:
+def TableChart(medidas, mode, diferencia, eliminar, eliminar_only) -> rx.Component:
 
     return rx.table.root(
 
@@ -105,10 +105,10 @@ def TableChart(medidas, mode, diferencia) -> rx.Component:
                                     rx.table.cell(md.height),
                                     rx.table.cell(md.hip),
                                     rx.table.cell(md.waist),
-                                    rx.table.cell(rx.button("ELIMINAR", color_scheme="red", size="1"))
+                                    rx.table.cell(rx.button("ELIMINAR", color_scheme="red", size="1", on_click=lambda: eliminar(md.client_id, mode)))
                                 ),
 
-                            rx.table.cell(rx.button("ELIMINAR", color_scheme="red", size="1"))
+                            rx.table.cell(rx.button("ELIMINAR", color_scheme="red", size="1", on_click=lambda: eliminar_only(md.client_id, mode)))
                             ),
                         )
                     )
