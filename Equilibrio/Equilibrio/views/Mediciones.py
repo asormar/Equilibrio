@@ -7,6 +7,8 @@ from Equilibrio.components.linechart import Linechart
 from Equilibrio.components.table_chart import TableChart
 from Equilibrio.database.models import MeasurementModel
 from Equilibrio.components.dialog import FormState
+from Equilibrio.database.models import ClientEntryModel
+from sqlmodel import select
 
 
 class MeasurementState(rx.State):
@@ -46,8 +48,21 @@ class MeasurementState(rx.State):
         
         with rx.session() as session:
             self.measurements = session.exec(
-                MeasurementModel.select().where(MeasurementModel.client_id == client_id)
-            ).all()
+                select(MeasurementModel.weight).where(MeasurementModel.client_id == client_id)
+            ).first()
+
+
+
+    async def delete_measurements(self, client_id: int, medida_mode):
+        """Eliminar medida por ID."""
+        with rx.session() as session:
+            medida_a_eliminar = session.exec(
+                MeasurementModel.weight.select().where(MeasurementModel.client_id == client_id)
+            ).first()
+            if medida_a_eliminar:
+                session.delete(medida_a_eliminar)
+                session.commit()
+        self.load_measurements()
 
 
     select_value: str = "PESO"
@@ -79,8 +94,12 @@ class MeasurementState(rx.State):
         # Lista que almacenará las diferencias para cada fila
         diferencias_por_fila = []
 
+        #print(self.measurements )
+
         # Recorremos todas las mediciones
         for i, medicion_actual in enumerate(self.measurements):
+
+            
 
             # La primera medición no tiene anterior, por lo que la diferencia queda vacía
             if i == 0:
@@ -89,6 +108,10 @@ class MeasurementState(rx.State):
 
             # Obtenemos la medición anterior
             medicion_anterior = self.measurements[i - 1]
+
+            #print(medicion_actual)
+            #print(medicion_anterior)
+            
 
             # Inicializamos la variable de diferencia
             diferencia = ""
@@ -110,8 +133,18 @@ class MeasurementState(rx.State):
                 # Para TODO no calculamos diferencia
                 diferencia = ""
 
+            
+            if "-" not in diferencia and diferencia != "0.00 %":
+                diferencia= "+"+diferencia
+
+
             # Añadimos la diferencia calculada a la lista
             diferencias_por_fila.append(diferencia)
+
+
+
+        diferencias_por_fila= diferencias_por_fila[::-1]
+        #print(diferencias_por_fila)
 
         # Devolvemos la lista completa de diferencias
         return diferencias_por_fila

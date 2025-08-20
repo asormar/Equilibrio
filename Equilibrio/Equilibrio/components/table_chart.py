@@ -67,14 +67,14 @@ def TableChart(medidas, mode, diferencia) -> rx.Component:
 
                 rx.table.body(
                     rx.foreach(
-                        medidas[::-1],
+                        medidas[::-1], # para que se muestre la más reciente arriba
                         lambda md, idx: rx.table.row(
                             rx.table.row_header_cell(md.date),
                             rx.cond(
                                 mode == "PESO",
                                 rx.fragment(
                                     rx.table.cell(md.weight),
-                                    rx.table.cell(diferencia[-idx])
+                                    rx.table.cell(diferencia[idx])
                                 )
                             ),
                             rx.cond(
@@ -105,7 +105,10 @@ def TableChart(medidas, mode, diferencia) -> rx.Component:
                                     rx.table.cell(md.height),
                                     rx.table.cell(md.hip),
                                     rx.table.cell(md.waist),
-                                )
+                                    rx.table.cell(rx.button("ELIMINAR", color_scheme="red", size="1"))
+                                ),
+
+                            rx.table.cell(rx.button("ELIMINAR", color_scheme="red", size="1"))
                             ),
                         )
                     )
