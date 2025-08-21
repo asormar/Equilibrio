@@ -2,6 +2,7 @@ import reflex as rx
 import reflex_chakra as rc
 
 from rxconfig import config
+from Equilibrio.styles.styles import CHART_COLORS
 
 class State(rx.State):
     """The app state."""
@@ -13,7 +14,7 @@ def Linechart(medidas, mode) -> rx.Component:
             mode == "PESO",
             rx.recharts.line(
                 data_key="weight",
-                stroke="#8884d8",
+                stroke=CHART_COLORS.PESO,
                 type_="monotone",
             ),
         ),
@@ -21,7 +22,7 @@ def Linechart(medidas, mode) -> rx.Component:
             mode == "ALTURA",
             rx.recharts.line(
                 data_key="height",
-                stroke="#82ca9d",
+                stroke=CHART_COLORS.ALTURA,
                 type_="monotone",
             ),
         ),
@@ -29,7 +30,7 @@ def Linechart(medidas, mode) -> rx.Component:
             mode == "CADERA",
             rx.recharts.line(
                 data_key="hip",
-                stroke="#ffc658",
+                stroke=CHART_COLORS.CADERA,
                 type_="monotone",
             ),
         ),
@@ -37,7 +38,7 @@ def Linechart(medidas, mode) -> rx.Component:
             mode == "CINTURA",
             rx.recharts.line(
                 data_key="waist",
-                stroke="#ff7300",
+                stroke= CHART_COLORS.CINTURA,
                 type_="monotone",
             ),
         ),

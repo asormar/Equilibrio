@@ -15,28 +15,64 @@ class MeasurementState(rx.State):
     measurements: list[MeasurementModel] = []
 
     async def add_measurement(self, meditions_data: dict):
-        print(f"Datos de la medición: {meditions_data}")
+        try:
+            print(f"Datos de la medición: {meditions_data}")
 
-        # Si viene la fecha vacía, se quita para que se use la automática
-        if not meditions_data.get("date"):
-            meditions_data.pop("date", None)
+            # Si viene la fecha vacía, se quita para que se use la automática
+            if not meditions_data.get("date"):
+                meditions_data.pop("date", None)
 
-        # Reemplazar valores "" por 0 en campos numéricos
-        for field in ["weight", "height", "hip", "waist"]:
-            if meditions_data.get(field, "") == "":
-                meditions_data[field] = 0
-            else:
-                # Opcional: convertir a float para que no haya errores si llega como string numérico
-                meditions_data[field] = float(meditions_data[field])
+            cont=0
+            # Reemplazar valores "" por 0 en campos numéricos
+            for field in ["weight", "height", "hip", "waist"]:
+                if meditions_data.get(field, "") == "" or meditions_data.get(field, "") == "0" or float(meditions_data.get(field, "")) <  0:
+                    meditions_data[field] = 0
+                    cont +=1
+                else:
+                    # Opcional: convertir a float para que no haya errores si llega como string numérico
+                    meditions_data[field] = float(meditions_data[field])
 
-        with rx.session() as session:
-            measurement = MeasurementModel(**meditions_data)
-            print(measurement)
-            session.add(measurement)
-            session.commit()
+            if cont >= 4:
+                aviso = "Todos los campos están vacíos. No se guardará la medición."
+                print(aviso)
+                # Crear toast de error
+                return rx.toast.error(
+                    aviso,
+                    position="top-center",
+                    duration=4000,
+                    style={
+                        "width":"400px"
+                    }
+                )
+            
+            elif cont >= 1 and cont < 4:
+                aviso = "Ningún campo puede ser menor o igual a 0"
+                print(aviso)
+                # Crear toast de advertencia
+                return rx.toast.error(
+                    aviso,
+                    position="top-center",
+                    duration=4000
+                )
 
-        self.load_measurements(int(meditions_data["client_id"]))
-        print(f"Mediciones después de agregar: {self.measurements[-1]}")
+            with rx.session() as session:
+                measurement = MeasurementModel(**meditions_data)
+                print(measurement)
+                session.add(measurement)
+                session.commit()
+
+            self.load_measurements(int(meditions_data["client_id"]))
+            print(f"Mediciones después de agregar: {self.measurements[-1]}")
+        except ValueError:
+            aviso = "Introduce números y no otros caracteres"
+            print(aviso)
+            # Crear toast de advertencia
+            return rx.toast.error(
+                aviso,
+                position="top-center",
+                duration=4000
+            )
+
 
 
 
@@ -106,17 +142,34 @@ class MeasurementState(rx.State):
     @rx.var
     def measurements_chart(self) -> list[dict]:
         """Devuelve las mediciones en formato dict para Recharts."""
-        return [
-            {
-                "date": str(m.date),      # asegúrate de que sea string o formato ISO
-                "weight": m.weight,
-                "height": m.height,
-                "hip": m.hip,
-                "waist": m.waist,
+        
+        # Creamos una lista vacía para almacenar los resultados
+        chart_data = []
+
+        tipos= ["weight", "height", "hip", "waist"]
+        
+        # Iteramos sobre cada medición en self.measurements
+        for m in self.measurements:
+
+            if any(getattr(m, tipo) == 0.0 for tipo in tipos):
+                continue  # Saltamos esta medición si tiene algún 0.0
+
+            print(m.weight)
+
+            # Creamos un diccionario para cada medición
+            measurement_dict = {
+                "date": str(m.date),      # Convertimos la fecha a string
+                "weight": m.weight,       # Tomamos el peso directamente
+                "height": m.height,       # Tomamos la altura directamente
+                "hip": m.hip,            # Tomamos la medida de cadera
+                "waist": m.waist,        # Tomamos la medida de cintura
             }
             
-            for m in self.measurements
-        ]
+            # Agregamos el diccionario a nuestra lista de resultados
+            chart_data.append(measurement_dict)
+        
+        # Devolvemos la lista completa de diccionarios
+        return chart_data
     
 
     @rx.var
