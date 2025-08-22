@@ -19,7 +19,7 @@ class FormState(rx.State):
             session.add(new_client)
             session.commit()
 
-        self.load_clients()
+        await self.load_clients()
 
     async def load_clients(self):
         """Cargar todos los registros de la base de datos."""
@@ -33,10 +33,11 @@ class FormState(rx.State):
             client = session.exec(
                 ClientEntryModel.select().where(ClientEntryModel.id == client_id)
             ).first()
+            
             if client:
                 session.delete(client)
                 session.commit()
-        self.load_clients()
+        await self.load_clients() # para que desaparezcan los clientes en tiempo real
 
 
     # Campos seleccionados del cliente

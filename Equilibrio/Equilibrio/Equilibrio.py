@@ -5,6 +5,7 @@ from rxconfig import config
 from Equilibrio.styles import styles
 from Equilibrio.views.Clientes import Clientes
 from Equilibrio.views.Mediciones import Mediciones
+from Equilibrio.views.Planificacion import Planificacion
 from Equilibrio.components.dialog import FormState
 
 
@@ -46,7 +47,7 @@ def index() -> rx.Component:
 
                 Clientes(),
                 Mediciones(),
-                
+                Planificacion(),
 
 
                 width="95%",

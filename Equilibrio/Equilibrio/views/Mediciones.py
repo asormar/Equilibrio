@@ -2,6 +2,7 @@ import reflex as rx
 
 from rxconfig import config
 
+from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE
 from Equilibrio.components.scrollarea import ScrollArea
 from Equilibrio.components.linechart import Linechart
 from Equilibrio.components.table_chart import TableChart
@@ -57,7 +58,7 @@ class MeasurementState(rx.State):
 
             with rx.session() as session:
                 measurement = MeasurementModel(**meditions_data)
-                print(measurement)
+                #print(measurement)
                 session.add(measurement)
                 session.commit()
 
@@ -74,9 +75,6 @@ class MeasurementState(rx.State):
             )
 
 
-
-
-
     def load_measurements(self, client_id: int):
         if client_id is None:
             self.measurements = []
@@ -88,44 +86,18 @@ class MeasurementState(rx.State):
             ).all()
 
 
-    async def delete_specific_measurement(self, client_id: int, field_type: str):
-        """Eliminar un campo específico de la última medida."""
-        with rx.session() as session:
-            ultimo_registro = session.exec(
-                select(MeasurementModel)
-                .where(MeasurementModel.client_id == client_id)
-                .order_by(MeasurementModel.id.desc())
-            ).first()
-            
-            if ultimo_registro:
-                # Actualizar solo el campo específico a 0
-                if field_type == "PESO":
-                    ultimo_registro.weight = 0
-                elif field_type == "ALTURA":
-                    ultimo_registro.height = 0
-                elif field_type == "CADERA":
-                    ultimo_registro.hip = 0
-                elif field_type == "CINTURA":
-                    ultimo_registro.waist = 0
-                
-                session.add(ultimo_registro)
-                session.commit()
-                print(f"Campo {field_type} del registro {ultimo_registro.id} actualizado a 0")
-        
-        # Recargar las mediciones
-        self.load_measurements(client_id)
-
-    async def delete_measurements(self, client_id: int, medida_mode: str = None):
+    async def delete_measurements(self, client_id: int, measure_id: int):
         """Eliminar la última medida por client_id."""
         with rx.session() as session:
-            ultimo_registro = session.exec(
+            measure_deleted = session.exec(
                 select(MeasurementModel)
-                .where(MeasurementModel.client_id == client_id)
-                .order_by(MeasurementModel.id.desc())  # Orden descendente por ID
+                .where(MeasurementModel.client_id == client_id,
+                       MeasurementModel.id == measure_id)
             ).first()
-            print(f"Eliminando registro: {ultimo_registro}")
-            if ultimo_registro:
-                session.delete(ultimo_registro)
+
+            print(f"Eliminando registro: {measure_deleted}")
+            if measure_deleted:
+                session.delete(measure_deleted)
                 session.commit()
         
         # Recargar las mediciones después de eliminar
@@ -154,7 +126,7 @@ class MeasurementState(rx.State):
             if any(getattr(m, tipo) == 0.0 for tipo in tipos):
                 continue  # Saltamos esta medición si tiene algún 0.0
 
-            print(m.weight)
+            #print(m.weight)
 
             # Creamos un diccionario para cada medición
             measurement_dict = {
@@ -356,7 +328,7 @@ def Mediciones() -> rx.Component:
                         rx.select(["PESO", "ALTURA", "CADERA", "CINTURA", "TODO"], name="measurement_type", default_value="PESO", size="1", on_change=MeasurementState.change_value),
                     ),
 
-                    ScrollArea(TableChart(MeasurementState.measurements, MeasurementState.select_value, MeasurementState.calculo, MeasurementState.delete_measurements, MeasurementState.delete_specific_measurement)),
+                    ScrollArea(TableChart(MeasurementState.measurements, MeasurementState.select_value, MeasurementState.calculo, MeasurementState.delete_measurements)),
 
                     #rx.text(MeasurementState.calculo),
 
@@ -378,15 +350,7 @@ def Mediciones() -> rx.Component:
         ),
 
 
-
-
-
-        width="100%",
-        background_color="lightgray",
-        padding="5px",
-        margin="5px 5px 0 0",
-        border_radius="5px",
-
+        style= SECTION_CONTAINER_STYLE
     )
 
 

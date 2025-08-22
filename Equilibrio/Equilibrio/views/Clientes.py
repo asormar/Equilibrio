@@ -2,6 +2,8 @@ import reflex as rx
 
 from rxconfig import config
 
+from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE
+
 from Equilibrio.components.dialog import Dialog
 from Equilibrio.components.acordion import Acordion
 from Equilibrio.components.table_clients import TableClients
@@ -140,12 +142,7 @@ def Clientes() -> rx.Component:
 
 
 
-
-        width="100%",
-        background_color="lightgray",
-        padding="5px",
-        
-        border_radius="5px",
+        style= SECTION_CONTAINER_STYLE
 
     )
 
