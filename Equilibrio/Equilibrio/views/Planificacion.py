@@ -1,10 +1,83 @@
 import reflex as rx
+from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE, SUBSECTION_STACK_STYLE
+from Equilibrio.views.Mediciones import MeasurementState
+from datetime import date
 
-from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE
+class StatePlanification(rx.State):
+    pass
 
 def Planificacion() -> rx.Component:
-    return rx.box(
-        rx.text("PLANIFICACIÓN"),
+    # Calcular valores usando rx.cond directamente en el componente
+    current_weight = rx.cond(
+        MeasurementState.measurements.length() > 0,
+        MeasurementState.measurements[-1].weight,
+        0.0
+    )
+    
+    current_height = rx.cond(
+        MeasurementState.measurements.length() > 0,
+        MeasurementState.measurements[-1].height,
+        0.0
+    )
+    
+    calc_imc = rx.cond(
+        current_height > 0,
+        f"{current_weight / ((current_height/100) ** 2):.2f}",
+        0.0
+    )
 
-        style= SECTION_CONTAINER_STYLE
+    calc_old = rx.cond(
+        current_height > 0,
+        f"{current_weight / ((current_height/100) ** 2):.2f}",
+        0.0
+    )
+
+    #calc_percent_fat =  f"{1.39*calc_imc + 0.16*1:.2f}",
+
+    
+    
+    return rx.box(
+
+        rx.text(current_weight, current_height, calc_imc),
+        rx.text("PLANIFICACIÓN"),
+        rx.vstack(
+            rx.text("INFORMACIÓN DEL CLIENTE"),
+            rx.table.root(
+                rx.table.header(
+                    rx.table.row(
+                        rx.table.column_header_cell(""),
+                        rx.table.column_header_cell("Fórmula"),
+                        rx.table.column_header_cell("Actual"),
+                        rx.table.column_header_cell("Objetivo"),
+                        rx.table.column_header_cell("Referencia"),
+                    ),
+                ),
+                rx.table.body(
+                    rx.table.row(
+                        rx.table.row_header_cell("Peso"),
+                        rx.table.cell("-"),
+                        rx.table.cell(current_weight),
+                        rx.table.cell(rx.input(width="4em")),
+                        rx.table.cell("-")
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("% de grasa"),
+                        rx.table.cell("Ecuación de Peterson"),
+                        rx.table.cell(calc_imc),
+                        rx.table.cell("-"),
+                        rx.table.cell("-"),
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("IMC"),
+                        rx.table.cell("-"),
+                        rx.table.cell(calc_imc),
+                        rx.table.cell("-"),
+                        rx.table.cell("-"),
+                    )
+                ),
+                width="100%"
+            ),
+            style=SUBSECTION_STACK_STYLE
+        ),
+        style=SECTION_CONTAINER_STYLE
     )

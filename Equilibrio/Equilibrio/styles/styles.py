@@ -14,6 +14,13 @@ SECTION_CONTAINER_STYLE={
     "border_radius":"5px",
 }
 
+SUBSECTION_STACK_STYLE={
+    "margin":"1em",
+    "padding":"0.5em",
+    "background_color":"gray",
+    "border_radius":"5px",
+}
+
 class CHART_COLORS:
     PESO= "#261bec"
     ALTURA= "#82ca9d"

@@ -2,7 +2,7 @@ import reflex as rx
 
 from rxconfig import config
 
-from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE
+from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE, SUBSECTION_STACK_STYLE
 
 from Equilibrio.components.dialog import Dialog
 from Equilibrio.components.acordion import Acordion
@@ -132,10 +132,7 @@ def Clientes() -> rx.Component:
             Acordion(),
 
 
-            margin="1em",
-            padding="0.5em",
-            background_color="gray",
-            border_radius="5px",
+            style= SUBSECTION_STACK_STYLE
             
         ),
 

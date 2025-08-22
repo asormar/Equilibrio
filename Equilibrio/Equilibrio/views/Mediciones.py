@@ -2,7 +2,7 @@ import reflex as rx
 
 from rxconfig import config
 
-from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE
+from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE, SUBSECTION_STACK_STYLE
 from Equilibrio.components.scrollarea import ScrollArea
 from Equilibrio.components.linechart import Linechart
 from Equilibrio.components.table_chart import TableChart
@@ -297,10 +297,7 @@ def Mediciones() -> rx.Component:
             ),
 
             direction="column",
-            margin="1em",
-            padding="0.5em",
-            background_color="gray",
-            border_radius="5px",
+            style= SUBSECTION_STACK_STYLE
             
         ),
 
@@ -342,10 +339,7 @@ def Mediciones() -> rx.Component:
             ),
 
             
-            margin="1em",
-            padding="0.5em",
-            background_color="gray",
-            border_radius="5px",
+            style=SUBSECTION_STACK_STYLE
 
         ),
 
