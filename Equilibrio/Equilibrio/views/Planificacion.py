@@ -33,7 +33,7 @@ class StatePlanification(rx.State):
         else:
             self.gender="0.5"
 
-        yield
+        
 
 
     @rx.var
@@ -69,7 +69,7 @@ class StatePlanification(rx.State):
         self.last_height= measurement_state.measurements[-1].height
         self.last_weight= measurement_state.measurements[-1].weight
 
-        yield
+        
     
 
     async def set_objective_weight(self, input_weight: str):  # Cambiar de float a str
@@ -147,6 +147,49 @@ class StatePlanification(rx.State):
 
 
 
+    current_activity_level: float
+    objective_activity_level: float
+    activity_values: dict ={"No definido":1, "Sedentario":1.2, "Ligero":1.375, "Moderado":1.55, "Intenso":1.725}
+
+
+    def get_current_activity_level(self, level: str):
+        self.current_activity_level=self.activity_values[level]
+
+    def get_objective_activity_level(self, level: str):
+        self.objective_activity_level=self.activity_values[level]
+
+
+    @rx.var
+    def current_bm(self) -> float:
+        
+        if self.gender=="1":
+            bm= 10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) + 5
+        elif self.gender=="0":
+            bm= 10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) -161
+        else:
+            bm= (10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) + 5 + 10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) -161)/2
+        return bm
+
+
+    current_calories: float = 0
+    objective_calories: float = 0
+
+    @rx.var
+    def current_caloric_needs(self) -> float:
+        self.current_calories= self.current_bm * self.current_activity_level
+        return self.current_calories
+    
+    @rx.var
+    def objective_caloric_needs(self) -> float:
+        self.objective_calories= self.current_bm * self.objective_activity_level
+        return self.objective_calories
+    
+    @rx.var
+    def reference_caloric_needs(self) -> str:
+        reference1= self.current_bm * 1
+        reference2= self.current_bm * 2
+        return f"{reference1:.0f}-{reference2:.0f} Kcal"
+
 
 def Planificacion() -> rx.Component:
     
@@ -193,5 +236,48 @@ def Planificacion() -> rx.Component:
             ),
             style=SUBSECTION_STACK_STYLE
         ),
+
+        rx.vstack(
+            rx.text("CÁLCULOS NUTRICIONALES"),
+            rx.table.root(
+                rx.table.header(
+                    rx.table.row(
+                        rx.table.column_header_cell(""),
+                        rx.table.column_header_cell("Fórmula"),
+                        rx.table.column_header_cell("Actual"),
+                        rx.table.column_header_cell("Objetivo"),
+                        rx.table.column_header_cell("Referencia"),
+                    ),
+                ),
+                rx.table.body(
+                    rx.table.row(
+                        rx.table.row_header_cell("Nivel de actividad física"),
+                        rx.table.cell("-"),
+                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], on_change=StatePlanification.get_current_activity_level)),
+                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], on_change=StatePlanification.get_objective_activity_level)),
+                        rx.table.cell("-")
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("Metabolismo basal"),
+                        rx.table.cell("Mifflin-St Jeor"),
+                        rx.table.cell(f"{StatePlanification.current_bm:.0f} Kcal"),
+                        rx.table.cell("-"),
+                        rx.table.cell("-"),
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("Calorias diarias"),
+                        rx.table.cell("-"),
+                        rx.table.cell(f"{StatePlanification.current_caloric_needs:.0f} Kcal"),
+                        rx.table.cell(f"{StatePlanification.objective_caloric_needs:.0f} Kcal"),
+                        rx.table.cell(StatePlanification.reference_caloric_needs),
+                    )
+                ),
+                width="100%"
+            ),
+            style=SUBSECTION_STACK_STYLE
+        ),
+
+
+
         style=SECTION_CONTAINER_STYLE
     )

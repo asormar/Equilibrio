@@ -62,8 +62,26 @@ class MeasurementState(rx.State):
                 session.add(measurement)
                 session.commit()
 
+            # Recargar las mediciones después de agregar
             self.load_measurements(int(meditions_data["client_id"]))
+            
+            # Importar StatePlanification aquí para evitar importaciones circulares
+            from Equilibrio.views.Planificacion import StatePlanification
+            
+            # Obtener el estado de planificación y actualizar sus datos
+            planification_state = await self.get_state(StatePlanification)
+            await planification_state.get_client_data()
+            await planification_state.get_measurements()
+            
             print(f"Mediciones después de agregar: {self.measurements[-1]}")
+            
+            # Crear toast de éxito
+            return rx.toast.success(
+                "Medición guardada correctamente",
+                position="top-center",
+                duration=3000
+            )
+            
         except ValueError:
             aviso = "Introduce números y no otros caracteres"
             print(aviso)
@@ -102,6 +120,12 @@ class MeasurementState(rx.State):
         
         # Recargar las mediciones después de eliminar
         self.load_measurements(client_id)
+        
+        # Actualizar también los datos de planificación después de eliminar
+        from Equilibrio.views.Planificacion import StatePlanification
+        planification_state = await self.get_state(StatePlanification)
+        await planification_state.get_client_data()
+        await planification_state.get_measurements()
 
 
     select_value: str = "PESO"
@@ -346,5 +370,3 @@ def Mediciones() -> rx.Component:
 
         style= SECTION_CONTAINER_STYLE
     )
-
-
