@@ -10,6 +10,7 @@ from Equilibrio.components.table_clients import TableClients
 from Equilibrio.components.dialog import FormState
 from Equilibrio.components.acordion import AcordionState
 from Equilibrio.views.Mediciones import MeasurementState
+from Equilibrio.views.Planificacion import StatePlanification
 
 
 
@@ -64,7 +65,8 @@ def Clientes() -> rx.Component:
                                                     FormState.select_client(client.id),  # tu acción existente
                                                     MeasurementState.load_measurements(client.id),
                                                     AcordionState.close_accordion(),             # cierra el acordeón
-                                                      # carga las mediciones del cliente seleccionado
+                                                    StatePlanification.get_client_data(),
+                                                    StatePlanification.get_measurements(),
                                                 ],
 
                                             ),
