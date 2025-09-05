@@ -191,6 +191,50 @@ class StatePlanification(rx.State):
         return f"{reference1:.0f}-{reference2:.0f} Kcal"
 
 
+
+    fat_percent: list = [20]
+    hc_percent: list = [50]
+    protein_percent: list = [30]
+
+    def get_fat_percent(self, update_fat_percent):
+        self.fat_percent= update_fat_percent
+
+    def get_hc_percent(self, update_hc_percent):
+        self.hc_percent= update_hc_percent
+
+    def get_protein_percent(self, update_protein_percent):
+        self.protein_percent= update_protein_percent
+
+
+
+    fat_g: float
+    hc_g: float
+    protein_g: float
+
+    @rx.var
+    def fat_g_calc(self) -> float:
+        self.fat_g= ((self.fat_percent[0] /100) * self.objective_calories) / 9
+        return self.fat_g
+    
+    @rx.var
+    def hc_g_calc(self) -> float:
+        self.hc_g= ((self.hc_percent[0] /100) * self.objective_calories) / 4
+        return self.hc_g
+    
+    @rx.var
+    def protein_g_calc(self) -> float:
+        self.protein_g= ((self.protein_percent[0] /100) * self.objective_calories) / 4
+        return self.protein_g
+    
+
+    def percent_changes(self):
+        total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
+
+        
+
+
+
+
 def Planificacion() -> rx.Component:
     
     return rx.box(
@@ -268,6 +312,62 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Calorias diarias"),
                         rx.table.cell("-"),
                         rx.table.cell(f"{StatePlanification.current_caloric_needs:.0f} Kcal"),
+                        rx.table.cell(f"{StatePlanification.objective_caloric_needs:.0f} Kcal"),
+                        rx.table.cell(StatePlanification.reference_caloric_needs),
+                    )
+                ),
+                width="100%"
+            ),
+            style=SUBSECTION_STACK_STYLE
+        ),
+
+
+        rx.vstack(
+            rx.text("DISTRIBUCIÓN DE MACRONUTRIENTES"),
+            rx.table.root(
+                rx.table.header(
+                    rx.table.row(
+                        rx.table.column_header_cell(""),
+                        rx.table.column_header_cell("Porcentaje", justify="center"),
+                        rx.table.column_header_cell("Cantidad total"),
+                        rx.table.column_header_cell("Cantidad en g/kg"),
+                        rx.table.column_header_cell("Referencia"),
+                    ),
+                ),
+                rx.table.body(
+                    rx.table.row(
+                        rx.table.row_header_cell("Grasas"),
+                        rx.table.cell(rx.vstack(
+                                        rx.flex(rx.heading(f"{StatePlanification.fat_percent:.0f} %"), justify="center", width="100%"), 
+                                        rx.slider(color_scheme="yellow", min=0, max=100, step=1, default_value=StatePlanification.fat_percent, on_change=StatePlanification.get_fat_percent),
+                                        ),
+                                    justify="center"
+                                    ),
+                        rx.table.cell(f"{StatePlanification.fat_g_calc:.0f} g"),
+                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], on_change=StatePlanification.get_objective_activity_level)),
+                        rx.table.cell("-")
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("Hidratos de carbono"),
+                        rx.table.cell(rx.vstack(
+                                        rx.flex(rx.heading(f"{StatePlanification.hc_percent:.0f} %"), justify="center", width="100%"), 
+                                        rx.slider(color_scheme="green", min=0, max=100, step=1, default_value=StatePlanification.hc_percent, on_change=StatePlanification.get_hc_percent),
+                                        ),
+                                    justify="center"
+                                    ),                        
+                        rx.table.cell(f"{StatePlanification.hc_g_calc:.0f} g"),
+                        rx.table.cell("-"),
+                        rx.table.cell("-"),
+                    ),
+                    rx.table.row(
+                        rx.table.row_header_cell("Proteínas"),
+                        rx.table.cell(rx.vstack(
+                                        rx.flex(rx.heading(f"{StatePlanification.protein_percent:.0f} %"), justify="center", width="100%"), 
+                                        rx.slider(color_scheme="pink", min=0, max=100, step=1, default_value=StatePlanification.protein_percent, on_change=StatePlanification.get_protein_percent),
+                                        ),
+                                    justify="center"
+                                    ),                        
+                        rx.table.cell(f"{StatePlanification.protein_g_calc:.0f} g"),
                         rx.table.cell(f"{StatePlanification.objective_caloric_needs:.0f} Kcal"),
                         rx.table.cell(StatePlanification.reference_caloric_needs),
                     )
