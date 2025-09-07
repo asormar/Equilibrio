@@ -28,4 +28,12 @@ class MeasurementModel(rx.Model, table=True):
     hip: float
     waist: float
 
-    
+class PlanificationDataModel(rx.Model, table=True):
+    """Model for secondary data of clients."""
+    client_id: int = Field(foreign_key="cliententrymodel.id")
+    objective_weight: float
+    activity_level: str
+    objective_activity_level: str
+    fat_percent: int
+    hc_percent: int
+    protein_percent: int

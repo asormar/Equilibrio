@@ -2,7 +2,9 @@ import reflex as rx
 from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE, SUBSECTION_STACK_STYLE
 from Equilibrio.views.Mediciones import MeasurementState
 from Equilibrio.components.dialog import FormState
-import math
+from Equilibrio.database.models import PlanificationDataModel
+from sqlmodel import select
+
 
 from datetime import date
 
@@ -19,6 +21,7 @@ class StatePlanification(rx.State):
 
     gender: str
     age: str
+    client_id: int
 
     current_activity_level: float = 1
     objective_activity_level: float = 1
@@ -29,6 +32,7 @@ class StatePlanification(rx.State):
         form_state = await self.get_state(FormState)
         self.age= form_state.selected_client_birth_date
         self.gender= form_state.selected_client_gender
+        self.client_id= form_state.selected_client_id
 
         if self.gender=="Masculino":
             self.gender="1"
@@ -70,8 +74,12 @@ class StatePlanification(rx.State):
 
     async def get_measurements(self):
         measurement_state = await self.get_state(MeasurementState)
-        self.last_height= measurement_state.measurements[-1].height
-        self.last_weight= measurement_state.measurements[-1].weight
+        try:
+            self.last_height= measurement_state.measurements[-1].height
+            self.last_weight= measurement_state.measurements[-1].weight
+        except IndexError:
+            self.last_height= 0
+            self.last_weight= 0
 
         
     
@@ -415,7 +423,64 @@ class StatePlanification(rx.State):
             return 0
 
 
+    async def add_planification_data(self):
+        with rx.session() as session:
+            session.add(PlanificationDataModel(
+                client_id=self.client_id,
+                objective_weight= 0,
+                activity_level= "No definido",
+                objective_activity_level= "No definido",
+                fat_percent= 20,
+                hc_percent= 50,
+                protein_percent= 30
+            ))
+            session.commit()
 
+        print("funciona")
+    
+    saved_id: int
+    saved_client_id: int
+    saved_objective_weight: float
+    saved_activity_level: str
+    saved_objective_activity_level: str
+    saved_fat_percent: int
+    saved_hc_percent: int
+    saved_protein_percent: int
+
+    async def view_planification_data(self):
+        with rx.session() as session:
+            records = session.exec(
+                select(PlanificationDataModel).where(PlanificationDataModel.client_id == self.client_id)
+            ).all()
+
+            if records:
+                for record in records:
+                    print(record)
+                    self.saved_id= record.id
+                    self.saved_client_id= record.client_id
+                    self.saved_objective_weight= record.objective_weight
+                    self.saved_activity_level= record.activity_level
+                    self.saved_objective_activity_level= record.objective_activity_level
+                    self.saved_fat_percent= record.fat_percent
+                    self.saved_hc_percent= record.hc_percent
+                    self.saved_protein_percent= record.protein_percent
+            
+            if not records:
+                await self.add_planification_data()
+
+    
+    async def delete_planification_data(self):
+        with rx.session() as session:
+            records = session.exec(
+                select(PlanificationDataModel).where(PlanificationDataModel.client_id == self.client_id)
+            ).all()
+
+            if records:
+                # Option 1: Delete each record individually
+                for record in records:
+                    session.delete(record)
+                session.commit()
+                print("Datos de Planificación eliminados")
         
 
         
@@ -444,7 +509,7 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Peso"),
                         rx.table.cell("-"),
                         rx.table.cell(StatePlanification.last_weight),
-                        rx.table.cell(rx.input(on_change=[StatePlanification.set_objective_weight,
+                        rx.table.cell(rx.input(default_value=StatePlanification.saved_objective_weight.to_string(), on_change=[StatePlanification.set_objective_weight,
                                                           StatePlanification.get_measurements,
                                                           StatePlanification.get_client_data], width="4em")),
                         rx.table.cell(StatePlanification.reference_weight)
@@ -485,8 +550,8 @@ def Planificacion() -> rx.Component:
                     rx.table.row(
                         rx.table.row_header_cell("Nivel de actividad física"),
                         rx.table.cell("-"),
-                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], on_change=StatePlanification.get_current_activity_level)),
-                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], on_change=StatePlanification.get_objective_activity_level)),
+                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], default_value=StatePlanification.saved_activity_level, on_change=StatePlanification.get_current_activity_level)),
+                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], default_value=StatePlanification.saved_objective_activity_level, on_change=StatePlanification.get_objective_activity_level)),
                         rx.table.cell("-")
                     ),
                     rx.table.row(
@@ -527,7 +592,7 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Grasas"),
                         rx.table.cell(rx.vstack(
                                         rx.flex(rx.heading(f"{StatePlanification.fat_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="yellow", min=0, max=100, step=1, default_value=StatePlanification.fat_percent, value=StatePlanification.fat_percent, on_change=StatePlanification.get_fat_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
+                                        rx.slider(color_scheme="yellow", min=0, max=100, step=1, default_value=StatePlanification.saved_fat_percent, value=StatePlanification.fat_percent, on_change=StatePlanification.get_fat_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
                                         ),
                                     justify="center"
                                     ),
@@ -539,7 +604,7 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Hidratos de carbono"),
                         rx.table.cell(rx.vstack(
                                         rx.flex(rx.heading(f"{StatePlanification.hc_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="green", min=0, max=100, step=1, default_value=StatePlanification.hc_percent, value= StatePlanification.hc_percent, on_change=StatePlanification.get_hc_percent.throttle(10), on_focus=StatePlanification.activate_hc_control),
+                                        rx.slider(color_scheme="green", min=0, max=100, step=1, default_value=StatePlanification.saved_hc_percent, value= StatePlanification.hc_percent, on_change=StatePlanification.get_hc_percent.throttle(10), on_focus=StatePlanification.activate_hc_control),
                                         ),
                                     justify="center"
                                     ),                        
@@ -551,7 +616,7 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Proteínas"),
                         rx.table.cell(rx.vstack(
                                         rx.flex(rx.heading(f"{StatePlanification.protein_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="pink", min=0, max=100, step=1, default_value=StatePlanification.protein_percent, value= StatePlanification.protein_percent, on_change=StatePlanification.get_protein_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
+                                        rx.slider(color_scheme="pink", min=0, max=100, step=1, default_value=StatePlanification.saved_protein_percent, value= StatePlanification.protein_percent, on_change=StatePlanification.get_protein_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
                                         ),
                                     justify="center"
                                     ),                        

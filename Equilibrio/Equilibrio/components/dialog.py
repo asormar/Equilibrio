@@ -20,6 +20,7 @@ class FormState(rx.State):
             session.commit()
 
         await self.load_clients()
+        
 
     async def load_clients(self):
         """Cargar todos los registros de la base de datos."""
@@ -38,6 +39,11 @@ class FormState(rx.State):
                 session.delete(client)
                 session.commit()
         await self.load_clients() # para que desaparezcan los clientes en tiempo real
+
+        # executes the function evading circular imports
+        from Equilibrio.views.Planificacion import StatePlanification
+        planification_state = await self.get_state(StatePlanification)
+        await planification_state.delete_planification_data()
 
 
     # Campos seleccionados del cliente

@@ -67,6 +67,7 @@ def Clientes() -> rx.Component:
                                                     AcordionState.close_accordion(),             # cierra el acordeón
                                                     StatePlanification.get_client_data(),
                                                     StatePlanification.get_measurements(),
+                                                    StatePlanification.view_planification_data(),
                                                 ],
 
                                             ),
