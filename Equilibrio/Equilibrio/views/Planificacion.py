@@ -127,7 +127,10 @@ class StatePlanification(rx.State):
     def objective_fat_percent(self) -> float:
          try:
             fat_percent= 1.39*self.imc + 0.16*25 - 10.34*float(self.gender) - 9
-            return fat_percent
+            if fat_percent<0:
+                return 0
+            else:
+                return fat_percent
          
          except:
             return 0.0
@@ -171,17 +174,29 @@ class StatePlanification(rx.State):
             bm= 10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) -161
         else:
             bm= (10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) + 5 + 10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) -161)/2
-        return bm
+        
+        if bm<0:
+            return 0
+        else:
+            return bm
 
 
     @rx.var
     def current_caloric_needs(self) -> float:
-        return self.current_bm * self.current_activity_level
+        calc= self.current_bm * self.current_activity_level
+        if calc<0:
+            return 0
+        else:
+            return calc
     
 
     @rx.var
     def objective_caloric_needs(self) -> float:
-        return self.current_bm * self.objective_activity_level
+        calc= self.current_bm * self.objective_activity_level
+        if calc<0:
+            return 0
+        else:
+            return calc
         
     
     def _update_objective_calories(self):
@@ -193,7 +208,11 @@ class StatePlanification(rx.State):
     def reference_caloric_needs(self) -> str:
         reference1= self.current_bm * 1
         reference2= self.current_bm * 2
-        return f"{reference1:.0f}-{reference2:.0f} Kcal"
+
+        if reference1 and reference2 <0:
+            return 0
+        else:
+            return f"{reference1:.0f}-{reference2:.0f} Kcal"
 
 
     anterior_fat_percent: list = [20]
@@ -280,17 +299,30 @@ class StatePlanification(rx.State):
 
     @rx.var
     def fat_g_calc(self) -> float:
-        return ((self.fat_percent[0] /100) * self.objective_caloric_needs) / 9
-
+        calc= ((self.fat_percent[0] /100) * self.objective_caloric_needs) / 9
+        if calc<0:
+            return 0
+        else:
+            return calc
     
     @rx.var
     def hc_g_calc(self) -> float:
-        return ((self.hc_percent[0] /100) * self.objective_caloric_needs) / 4
+        calc= ((self.hc_percent[0] /100) * self.objective_caloric_needs) / 4
+        if calc<0:
+            return 0
+        else:
+            return calc
 
     
     @rx.var
     def protein_g_calc(self) -> float:
-        return ((self.protein_percent[0] /100) * self.objective_caloric_needs) / 4
+        calc= ((self.protein_percent[0] /100) * self.objective_caloric_needs) / 4
+
+        if calc<0:
+            return 0
+        else:
+            return calc
+    
     
 
     hc_control= False
