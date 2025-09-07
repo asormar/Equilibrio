@@ -65,6 +65,8 @@ class MeasurementState(rx.State):
             # Recargar las mediciones después de agregar
             self.load_measurements(int(meditions_data["client_id"]))
             
+
+
             # Importar StatePlanification aquí para evitar importaciones circulares
             from Equilibrio.views.Planificacion import StatePlanification
             
@@ -72,6 +74,9 @@ class MeasurementState(rx.State):
             planification_state = await self.get_state(StatePlanification)
             await planification_state.get_client_data()
             await planification_state.get_measurements()
+            
+
+
             
             print(f"Mediciones después de agregar: {self.measurements[-1]}")
             

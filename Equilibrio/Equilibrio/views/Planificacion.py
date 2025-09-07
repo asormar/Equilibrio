@@ -157,6 +157,9 @@ class StatePlanification(rx.State):
 
     def get_objective_activity_level(self, level: str):
         self.objective_activity_level=self.activity_values[level]
+        
+        # Forzar la actualización de objective_calories cuando cambie el nivel de actividad
+        self._update_objective_calories()
 
 
     @rx.var
@@ -179,10 +182,16 @@ class StatePlanification(rx.State):
         self.current_calories= self.current_bm * self.current_activity_level
         return self.current_calories
     
+
     @rx.var
     def objective_caloric_needs(self) -> float:
         self.objective_calories= self.current_bm * self.objective_activity_level
         return self.objective_calories
+    
+    def _update_objective_calories(self):
+        """Método auxiliar para actualizar objective_calories"""
+        self.objective_calories = self.current_bm * self.objective_activity_level
+    
     
     @rx.var
     def reference_caloric_needs(self) -> str:
@@ -203,30 +212,47 @@ class StatePlanification(rx.State):
     def get_fat_percent(self, update_fat_percent):
 
         if self.hc_percent[0] <= 0 and update_fat_percent[0] > self.fat_percent[0]:
-            # No permitir el aumento, mantener el valor actual
             total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
             diff= total_percent - 100
             if diff<0:
                 diff= abs(diff)
             self.protein_percent= [self.protein_percent[0] - diff]
 
-            if self.fat_percent[0] and (self.protein_percent[0]==1 or self.protein_percent[0]==2 or self.protein_percent[0]==3):
-                self.protein_percent=[0]
-                self.fat_percent=[100]
-                diff=0
-
         self.fat_percent= update_fat_percent
 
-        # print("fat percent anterior:",self.anterior_fat_percent)
-        # print("fat percent actual:",self.fat_percent)
-        # print(self.fat_percent==self.anterior_fat_percent)
-
         self.percent_changes()
+
+        if self.fat_percent[0]==100:
+            self.protein_percent=[0]
+            self.hc_percent=[0]
+            self.fat_percent=[100]
+            diff=0
+
         self.anterior_fat_percent= self.fat_percent
         
 
     def get_hc_percent(self, update_hc_percent):
+
+        if self.fat_percent[0] <= 0 and update_hc_percent[0] > self.hc_percent[0]:
+            self.fat_percent=[0]
+            print(update_hc_percent)
+            print(self.hc_percent)
+            total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
+            diff= total_percent - 100
+            if diff<0:
+                diff= abs(diff)
+            self.protein_percent= [self.protein_percent[0] - diff]
+            print(self.protein_percent)
+
         self.hc_percent= update_hc_percent
+
+        self.percent_changes()
+
+        if self.hc_percent[0]==100:
+            self.protein_percent=[0]
+            self.fat_percent=[0]
+            self.hc_percent=[100]
+            diff=0
 
         self.anterior_hc_percent= self.hc_percent
         
@@ -234,20 +260,23 @@ class StatePlanification(rx.State):
     def get_protein_percent(self, update_protein_percent):
 
         if self.hc_percent[0] <= 0 and update_protein_percent[0] > self.protein_percent[0]:
-            # No permitir el aumento, mantener el valor actual
+            self.hc_percent=[0]
             total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
             diff= total_percent - 100
             if diff<0:
                 diff= abs(diff)
             self.fat_percent= [self.fat_percent[0] - diff]
 
-            if self.protein_percent[0] and self.fat_percent[0]==1:
-                self.fat_percent=[0]
-
 
         self.protein_percent= update_protein_percent
 
         self.percent_changes()
+
+        if self.protein_percent[0]==100:
+            self.fat_percent=[0]
+            self.hc_percent=[0]
+            self.protein_percent=[100]
+
         self.anterior_protein_percent= self.protein_percent
         
 
@@ -273,7 +302,19 @@ class StatePlanification(rx.State):
         return self.protein_g
     
 
+    hc_control= False
+
+    def activate_hc_control(self):
+        self.hc_control= True
+        print(self.hc_control)
+
+    def desactivate_hc_control(self):
+        self.hc_control=False
+        print(self.hc_control)
+
+
     def percent_changes(self):
+
         print("hc percent:", self.hc_percent)
         total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
         print("total percent:", total_percent)
@@ -287,20 +328,33 @@ class StatePlanification(rx.State):
             diff= abs(diff)
 
         #For substracting hc percent when adding the others
-        if (total_percent != 100 and self.anterior_fat_percent < self.fat_percent) or (total_percent != 100 and self.anterior_protein_percent < self.protein_percent):
-            self.hc_percent= [self.hc_percent[0] - diff]
+        if self.hc_control==False:
+            if (total_percent != 100 and self.anterior_fat_percent < self.fat_percent) or (total_percent != 100 and self.anterior_protein_percent < self.protein_percent):
+                self.hc_percent= [self.hc_percent[0] - diff]
 
-        elif (total_percent == 100 and self.anterior_fat_percent < self.fat_percent) or (total_percent == 100 and self.anterior_protein_percent < self.protein_percent):
-            self.hc_percent= [self.hc_percent[0] - diff]
+            elif (total_percent == 100 and self.anterior_fat_percent < self.fat_percent) or (total_percent == 100 and self.anterior_protein_percent < self.protein_percent):
+                self.hc_percent= [self.hc_percent[0] - diff]
 
-        elif (total_percent != 100 and self.anterior_fat_percent > self.fat_percent) or (total_percent != 100 and self.anterior_protein_percent > self.protein_percent):
-            self.hc_percent= [self.hc_percent[0] + diff]
+            elif (total_percent != 100 and self.anterior_fat_percent > self.fat_percent) or (total_percent != 100 and self.anterior_protein_percent > self.protein_percent):
+                self.hc_percent= [self.hc_percent[0] + diff]
 
-        elif (total_percent == 100 and self.anterior_fat_percent > self.fat_percent) or (total_percent == 100 and self.anterior_protein_percent > self.protein_percent):
-            self.hc_percent= [self.hc_percent[0] + diff]
+            elif (total_percent == 100 and self.anterior_fat_percent > self.fat_percent) or (total_percent == 100 and self.anterior_protein_percent > self.protein_percent):
+                self.hc_percent= [self.hc_percent[0] + diff]
 
 
-        
+        #For substracting the others when adding hc
+        elif self.hc_control==True:
+            if (total_percent != 100 and self.anterior_hc_percent < self.hc_percent):
+                self.fat_percent= [self.fat_percent[0] - diff]
+
+            elif (total_percent == 100 and self.anterior_hc_percent < self.hc_percent):
+                self.fat_percent= [self.fat_percent[0] - diff]
+                
+            elif (total_percent != 100 and self.anterior_hc_percent > self.hc_percent):
+                self.fat_percent= [self.fat_percent[0] + diff]
+
+            elif (total_percent == 100 and self.anterior_hc_percent > self.hc_percent):
+                self.fat_percent= [self.fat_percent[0] + diff]
 
         if self.hc_percent[0]>100:
             self.hc_percent=[100]
@@ -311,7 +365,6 @@ class StatePlanification(rx.State):
         print("hc percent ajustado:", self.hc_percent)
 
 
-        
         print("-------------------")
 
         
@@ -425,19 +478,19 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Grasas"),
                         rx.table.cell(rx.vstack(
                                         rx.flex(rx.heading(f"{StatePlanification.fat_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="yellow", min=0, max=100, step=1, default_value=StatePlanification.fat_percent, value=StatePlanification.fat_percent, on_change=StatePlanification.get_fat_percent),
+                                        rx.slider(color_scheme="yellow", min=0, max=100, step=1, default_value=StatePlanification.fat_percent, value=StatePlanification.fat_percent, on_change=StatePlanification.get_fat_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
                                         ),
                                     justify="center"
                                     ),
                         rx.table.cell(f"{StatePlanification.fat_g_calc:.0f} g"),
-                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], on_change=StatePlanification.get_objective_activity_level)),
+                        rx.table.cell("-"),
                         rx.table.cell("-")
                     ),
                     rx.table.row(
                         rx.table.row_header_cell("Hidratos de carbono"),
                         rx.table.cell(rx.vstack(
                                         rx.flex(rx.heading(f"{StatePlanification.hc_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="green", min=0, max=100, step=1, default_value=StatePlanification.hc_percent, value= StatePlanification.hc_percent, on_change=StatePlanification.get_hc_percent),
+                                        rx.slider(color_scheme="green", min=0, max=100, step=1, default_value=StatePlanification.hc_percent, value= StatePlanification.hc_percent, on_change=StatePlanification.get_hc_percent.throttle(10), on_focus=StatePlanification.activate_hc_control),
                                         ),
                                     justify="center"
                                     ),                        
@@ -449,7 +502,7 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Proteínas"),
                         rx.table.cell(rx.vstack(
                                         rx.flex(rx.heading(f"{StatePlanification.protein_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="pink", min=0, max=100, step=1, default_value=StatePlanification.protein_percent, value= StatePlanification.protein_percent, on_change=StatePlanification.get_protein_percent),
+                                        rx.slider(color_scheme="pink", min=0, max=100, step=1, default_value=StatePlanification.protein_percent, value= StatePlanification.protein_percent, on_change=StatePlanification.get_protein_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
                                         ),
                                     justify="center"
                                     ),                        
