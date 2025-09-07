@@ -20,6 +20,10 @@ class StatePlanification(rx.State):
     gender: str
     age: str
 
+    current_activity_level: float = 1
+    objective_activity_level: float = 1
+    activity_values: dict ={"No definido":1, "Sedentario":1.2, "Ligero":1.375, "Moderado":1.55, "Intenso":1.725}
+
 
     async def get_client_data(self):
         form_state = await self.get_state(FormState)
@@ -147,10 +151,6 @@ class StatePlanification(rx.State):
 
 
 
-    current_activity_level: float
-    objective_activity_level: float
-    activity_values: dict ={"No definido":1, "Sedentario":1.2, "Ligero":1.375, "Moderado":1.55, "Intenso":1.725}
-
 
     def get_current_activity_level(self, level: str):
         self.current_activity_level=self.activity_values[level]
@@ -174,23 +174,19 @@ class StatePlanification(rx.State):
         return bm
 
 
-    current_calories: float = 0
-    objective_calories: float = 0
-
     @rx.var
     def current_caloric_needs(self) -> float:
-        self.current_calories= self.current_bm * self.current_activity_level
-        return self.current_calories
+        return self.current_bm * self.current_activity_level
     
 
     @rx.var
     def objective_caloric_needs(self) -> float:
-        self.objective_calories= self.current_bm * self.objective_activity_level
-        return self.objective_calories
+        return self.current_bm * self.objective_activity_level
+        
     
     def _update_objective_calories(self):
         """Método auxiliar para actualizar objective_calories"""
-        self.objective_calories = self.current_bm * self.objective_activity_level
+        return self.current_bm * self.objective_activity_level
     
     
     @rx.var
@@ -282,48 +278,43 @@ class StatePlanification(rx.State):
 
 
 
-    fat_g: float
-    hc_g: float
-    protein_g: float
-
     @rx.var
     def fat_g_calc(self) -> float:
-        self.fat_g= ((self.fat_percent[0] /100) * self.objective_calories) / 9
-        return self.fat_g
+        return ((self.fat_percent[0] /100) * self.objective_caloric_needs) / 9
+
     
     @rx.var
     def hc_g_calc(self) -> float:
-        self.hc_g= ((self.hc_percent[0] /100) * self.objective_calories) / 4
-        return self.hc_g
+        return ((self.hc_percent[0] /100) * self.objective_caloric_needs) / 4
+
     
     @rx.var
     def protein_g_calc(self) -> float:
-        self.protein_g= ((self.protein_percent[0] /100) * self.objective_calories) / 4
-        return self.protein_g
+        return ((self.protein_percent[0] /100) * self.objective_caloric_needs) / 4
     
 
     hc_control= False
 
     def activate_hc_control(self):
         self.hc_control= True
-        print(self.hc_control)
+        # print(self.hc_control)
 
     def desactivate_hc_control(self):
         self.hc_control=False
-        print(self.hc_control)
+        # print(self.hc_control)
 
 
     def percent_changes(self):
 
-        print("hc percent:", self.hc_percent)
+        # print("hc percent:", self.hc_percent)
         total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
-        print("total percent:", total_percent)
+        # print("total percent:", total_percent)
         
-        print("anterior fat percent:", self.anterior_fat_percent)
-        print("fat percent:", self.fat_percent)
+        # print("anterior fat percent:", self.anterior_fat_percent)
+        # print("fat percent:", self.fat_percent)
 
         diff= total_percent - 100
-        print("diferencia:", diff, "\n")
+        # print("diferencia:", diff, "\n")
         if diff<0:
             diff= abs(diff)
 
@@ -361,11 +352,37 @@ class StatePlanification(rx.State):
         elif self.hc_percent[0]<0:
             self.hc_percent=[0]
 
-        print("total percent:", total_percent)
-        print("hc percent ajustado:", self.hc_percent)
+        # print("total percent:", total_percent)
+        # print("hc percent ajustado:", self.hc_percent)
 
 
-        print("-------------------")
+        # print("-------------------")
+
+
+
+    @rx.var
+    def fat_g_kg(self) -> float:
+        try:
+            return self.fat_g_calc / self.last_weight
+        
+        except ZeroDivisionError:
+            return 0
+    
+    @rx.var
+    def hc_g_kg(self) -> float:
+        try:
+            return self.hc_g_calc / self.last_weight
+        except ZeroDivisionError:
+            return 0
+    
+    @rx.var
+    def protein_g_kg(self) -> float:
+        try:
+            return self.protein_g_calc / self.last_weight
+        except ZeroDivisionError:
+            return 0
+
+
 
         
 
@@ -483,8 +500,8 @@ def Planificacion() -> rx.Component:
                                     justify="center"
                                     ),
                         rx.table.cell(f"{StatePlanification.fat_g_calc:.0f} g"),
-                        rx.table.cell("-"),
-                        rx.table.cell("-")
+                        rx.table.cell(f"{StatePlanification.fat_g_kg:.2f} g/kg"),
+                        rx.table.cell("10 - 35%")
                     ),
                     rx.table.row(
                         rx.table.row_header_cell("Hidratos de carbono"),
@@ -495,8 +512,8 @@ def Planificacion() -> rx.Component:
                                     justify="center"
                                     ),                        
                         rx.table.cell(f"{StatePlanification.hc_g_calc:.0f} g"),
-                        rx.table.cell("-"),
-                        rx.table.cell("-"),
+                        rx.table.cell(f"{StatePlanification.hc_g_kg:.2f} g/kg"),
+                        rx.table.cell("45 - 65%"),
                     ),
                     rx.table.row(
                         rx.table.row_header_cell("Proteínas"),
@@ -507,8 +524,8 @@ def Planificacion() -> rx.Component:
                                     justify="center"
                                     ),                        
                         rx.table.cell(f"{StatePlanification.protein_g_calc:.0f} g"),
-                        rx.table.cell(f"{StatePlanification.objective_caloric_needs:.0f} Kcal"),
-                        rx.table.cell(StatePlanification.reference_caloric_needs),
+                        rx.table.cell(f"{StatePlanification.protein_g_kg:.2f} g/kg"),
+                        rx.table.cell("20 - 35%"),
                     )
                 ),
                 width="100%"

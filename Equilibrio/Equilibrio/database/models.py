@@ -27,3 +27,5 @@ class MeasurementModel(rx.Model, table=True):
     height: float
     hip: float
     waist: float
+
+    
