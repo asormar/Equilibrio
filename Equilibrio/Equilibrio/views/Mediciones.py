@@ -264,8 +264,7 @@ class MeasurementState(rx.State):
 def Mediciones() -> rx.Component:
     return rx.box(
 
-        rx.text("MEDICIONES"),
-        rx.text(FormState.selected_client_id.to_string()),
+        rx.text("MEDICIONES", size="7", color= "#dcdaca"),
 
         rx.flex(   
 
@@ -329,8 +328,6 @@ def Mediciones() -> rx.Component:
                             height="3em",
                         ),
 
-                        rx.text(MeasurementState.measurements.to_string()),
-
                         width="100%",
                         display= "flex",
                         justify_content= "center",
@@ -389,5 +386,6 @@ def Mediciones() -> rx.Component:
         ),
 
 
-        style= SECTION_CONTAINER_STYLE
+        style= SECTION_CONTAINER_STYLE,
+        id= "measurement_section"
     )

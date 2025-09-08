@@ -110,11 +110,11 @@ class FormState(rx.State):
 def Dialog() -> rx.Component:
     return rx.dialog.root(
 
-    rx.dialog.trigger(rx.button("Añadir Cliente", size="4")),
+    rx.dialog.trigger(rx.button(rx.text("Añadir Cliente", font_size="1em"), size="4", radius="full", background_color= "#2e4153", _hover= {"background_color": "#384e63"})),
     rx.dialog.content(
         rx.dialog.title("Añadir Cliente"),
         rx.dialog.description(
-            "Registra los diferentes datos del cliente",
+            "Registra los diferentes apartados del cliente, estos no son definitivos y se podrán modificar.",
             size="2",
             margin_bottom="16px",
         ),
@@ -191,7 +191,7 @@ def Dialog() -> rx.Component:
 
             rx.flex(
 
-                rx.button("Save", type="submit", on_click=FormState.load_clients),
+                rx.button("Save", type="submit", background_color= "#384e63", on_click=FormState.load_clients),
                 
                 rx.dialog.close(
                     rx.button("Close", color_scheme="red"),
@@ -206,15 +206,11 @@ def Dialog() -> rx.Component:
             #reset_on_submit=True,
         ),
 
-        rx.divider(),
-        rx.heading("Results"),
-        rx.text(FormState.form_data.to_string()),
 
-        rx.divider(),
+        background_color= "#23313f"
 
     ),
     
-
 )
 
 

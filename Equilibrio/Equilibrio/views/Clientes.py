@@ -4,7 +4,6 @@ from rxconfig import config
 
 from Equilibrio.styles.styles import SECTION_CONTAINER_STYLE, SUBSECTION_STACK_STYLE
 
-from Equilibrio.components.dialog import Dialog
 from Equilibrio.components.acordion import Acordion
 from Equilibrio.components.table_clients import TableClients
 from Equilibrio.components.dialog import FormState
@@ -19,14 +18,13 @@ class State(rx.State):
     """The app state."""
 
 
+
 def Clientes() -> rx.Component:
     return rx.box(
 
-        rx.text("CLIENTES"),
+        rx.text("CLIENTES", size="7", color= "#dcdaca"),
         
         rx.hstack(
-            Dialog(),
-
             rx.box(
             
                 rx.heading("Clientes Registrados", size="4"),
@@ -58,7 +56,8 @@ def Clientes() -> rx.Component:
 
                                             rx.button(
                                                 "Seleccionar",
-                                                color_scheme="blue",
+                                                background_color= "#384e63",
+                                                _hover= {"background_color": "#3f5970"},
                                                 size="2",
                                                 margin_top="1em",
                                                 on_click=[
@@ -72,11 +71,11 @@ def Clientes() -> rx.Component:
 
                                             ),
                                         ),
-                                        border="1px solid gray",
+                                        border="1px solid #203644",
                                         padding="12px",
                                         border_radius="8px",
                                         margin_bottom="10px",
-                                        box_shadow="10px 5px 5px gray",
+                                        box_shadow="10px 5px 5px #23313f",
                                         min_width="300px",
                                     )
                                 )
@@ -88,9 +87,9 @@ def Clientes() -> rx.Component:
                     scrollbars="horizontal",
                     style={"height": "auto", "width": "100%"},
                 ),
-                            
-                    width="90%",
-                    margin="0 0 0 2em"
+                type="hover",        
+                width="95%",
+                margin="0 0 0 2em"
             )
             
         ),
@@ -142,7 +141,8 @@ def Clientes() -> rx.Component:
 
 
 
-        style= SECTION_CONTAINER_STYLE
+        style= SECTION_CONTAINER_STYLE,
+        id="client_section"
 
     )
 

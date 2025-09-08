@@ -466,7 +466,7 @@ class StatePlanification(rx.State):
 
 def Planificacion() -> rx.Component:
     return rx.box(
-        rx.text("PLANIFICACIÓN"),
+        rx.text("PLANIFICACIÓN", size="7", color= "#dcdaca"),
         rx.vstack(
             rx.text("INFORMACIÓN DEL CLIENTE"),
             rx.table.root(
@@ -656,5 +656,6 @@ def Planificacion() -> rx.Component:
 
         # Agregar este evento al cargar el componente
         on_mount=StatePlanification.initialize_data,
-        style=SECTION_CONTAINER_STYLE
+        style=SECTION_CONTAINER_STYLE,
+        id= "planification_section"
     )

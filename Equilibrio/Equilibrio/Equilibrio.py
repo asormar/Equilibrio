@@ -3,6 +3,8 @@ import reflex as rx
 from rxconfig import config
 
 from Equilibrio.styles import styles
+from Equilibrio.views.Header import Header
+from Equilibrio.components.dialog import Dialog
 from Equilibrio.views.Clientes import Clientes
 from Equilibrio.views.Mediciones import Mediciones
 from Equilibrio.views.Planificacion import Planificacion
@@ -17,28 +19,62 @@ class State(rx.State):
 
 def index() -> rx.Component:
     return rx.box(
-            
-        rx.hstack(
-            rx.text("Header"),
-            background_color="lightblue",
-            padding="5px",
-            margin="5px 5px 10px 5px",
-            border_radius="5px"
-        ),
-        
+        Header(),
 
-        rx.divider( size="4", color_scheme="cyan"),
 
         rx.hstack(
     
             rx.box(
-                rx.text("Columna 1"),
-                width="5%",
-                background_color="beige",
-                padding="5px",
-                margin="5px 5px 0 10px",
-                border_radius="5px",
+                rx.flex(
+                    Dialog(),
+                    justify="center",
+                    padding="5px",
+                    margin="0.5em 0 0.5em 0"
+                ),
+                rx.divider( size="4", color= "#2e4153"),
+                rx.flex(
+                    rx.link(
+                        rx.button(
+                            rx.icon("circle-user-round"),
+                            rx.text("CLIENTES"),
+                            variant="ghost",
+                            color="white",
+                            _hover= {"background_color":"#23313f"}
+                            ),
+                            href="#client_section"
+                        ),
+                    rx.link(
+                        rx.button(
+                            rx.icon("ruler"),
+                            rx.text("MEDICIONES"),
+                            variant="ghost",
+                            color="white",
+                            _hover= {"background_color":"#23313f"}
+                            ),
+                            href="#measurement_section"
+                        ),
+                    rx.link(
+                        rx.button(
+                            rx.icon("calculator"),
+                            rx.text("PLANIFICACIÓN"),
+                            variant="ghost",
+                            color="white",
+                            _hover= {"background_color":"#23313f"}
+                            ),
+                            href="#planification_section"
+                        ),
+                    
+                    margin="0.5em",
+                    spacing= "2",
+                    direction="column"
+                ),
+                width="18%",
+                background_color="#23313f",
+                margin="0.5em 0.5em 0 1em",
+                border_radius="15px",
                 height="400px",
+                
+                
 
             ),
 
@@ -50,8 +86,8 @@ def index() -> rx.Component:
                 Planificacion(),
 
 
-                width="95%",
-                margin="5px 10px 0 10px",
+                width="82%",
+                margin="0.5em 1em 0 1em",
             ),
 
 
