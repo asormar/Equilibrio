@@ -45,6 +45,10 @@ class FormState(rx.State):
         planification_state = await self.get_state(StatePlanification)
         await planification_state.delete_planification_data()
 
+        from Equilibrio.views.Mediciones import MeasurementState
+        measurements_state = await self.get_state(MeasurementState)
+        await measurements_state.delete_all_measurements(client_id)
+
 
     # Campos seleccionados del cliente
     selected_client_id: int | None = None

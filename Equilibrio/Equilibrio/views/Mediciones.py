@@ -109,6 +109,22 @@ class MeasurementState(rx.State):
             ).all()
 
 
+    async def delete_all_measurements(self, client_id: int):
+        with rx.session() as session:
+            measures = session.exec(
+                select(MeasurementModel)
+                .where(MeasurementModel.client_id == client_id)
+            ).all()
+
+            for measure in measures:
+                if measure:
+                    session.delete(measure)
+                    session.commit()
+                    print(measure)
+                    print(client_id)
+            self.load_measurements(client_id)
+
+
     async def delete_measurements(self, client_id: int, measure_id: int):
         """Eliminar la última medida por client_id."""
         with rx.session() as session:

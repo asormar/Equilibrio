@@ -4,12 +4,20 @@ from Equilibrio.views.Mediciones import MeasurementState
 from Equilibrio.components.dialog import FormState
 from Equilibrio.database.models import PlanificationDataModel
 from sqlmodel import select
-
-
 from datetime import date
 
     
 class StatePlanification(rx.State):
+
+    saved_id: int
+    saved_client_id: int
+    saved_objective_weight: float = 0.0  # Valor por defecto
+    saved_activity_level: str = "No definido"
+    saved_objective_activity_level: str = "No definido"
+    saved_fat_percent: int = 20  # Valor por defecto
+    saved_hc_percent: int = 50   # Valor por defecto
+    saved_protein_percent: int = 30  # Valor por defecto
+
     objective_weight: float = 0.0
 
     imc: float
@@ -23,10 +31,18 @@ class StatePlanification(rx.State):
     age: str
     client_id: int
 
-    current_activity_level: float = 1
-    objective_activity_level: float = 1
     activity_values: dict ={"No definido":1, "Sedentario":1.2, "Ligero":1.375, "Moderado":1.55, "Intenso":1.725}
+    
+    # Variables para controlar si los datos ya se han cargado
+    data_loaded: bool = False
 
+    @rx.var
+    def current_activity_level(self) -> float:
+        return self.activity_values.get(self.saved_activity_level, 1)
+
+    @rx.var 
+    def objective_activity_level(self) -> float:
+        return self.activity_values.get(self.saved_objective_activity_level, 1)
 
     async def get_client_data(self):
         form_state = await self.get_state(FormState)
@@ -41,15 +57,30 @@ class StatePlanification(rx.State):
         else:
             self.gender="0.5"
 
-        
-
+    # Método para inicializar todos los datos necesarios
+    async def initialize_data(self):
+        try:
+            if not self.data_loaded:
+                await self.get_client_data()
+                await self.get_measurements()
+                await self.view_planification_data()
+                # Inicializar los valores de porcentajes con los datos guardados
+                self.fat_percent = [self.saved_fat_percent]
+                self.hc_percent = [self.saved_hc_percent] 
+                self.protein_percent = [self.saved_protein_percent]
+                # También inicializar los valores anteriores
+                self.anterior_fat_percent = [self.saved_fat_percent]
+                self.anterior_hc_percent = [self.saved_hc_percent]
+                self.anterior_protein_percent = [self.saved_protein_percent]
+                self.objective_weight = self.saved_objective_weight
+                self.data_loaded = True
+        except:
+            pass
 
     @rx.var
     def client_age_data(self) -> str:
-
         try:
             current_year = date.today().year
-
             birth_year = int(self.age[0:4])
             birth_month = int(self.age[5:7])
             birth_specific_day = int(self.age[8:10])
@@ -58,11 +89,9 @@ class StatePlanification(rx.State):
                 if (date.today().month >= birth_month and date.today().day >= birth_specific_day) or (date.today().month > birth_month):
                     year_age= current_year - birth_year
                     year_age= str(year_age)
-                    #print(year_age)
                 else:
                     year_age= current_year - birth_year - 1
                     year_age= str(year_age)
-                    #print(year_age)
             else:
                 year_age="0"
             
@@ -70,7 +99,6 @@ class StatePlanification(rx.State):
         
         except:
             return "0"
-
 
     async def get_measurements(self):
         measurement_state = await self.get_state(MeasurementState)
@@ -81,17 +109,12 @@ class StatePlanification(rx.State):
             self.last_height= 0
             self.last_weight= 0
 
-        
-    
-
-    async def set_objective_weight(self, input_weight: str):  # Cambiar de float a str
+    async def set_objective_weight(self, input_weight: str):
         try:
             self.objective_weight = float(input_weight)  
-            #print(f"Peso objetivo actualizado a: {self.objective_weight}")
+            await self.modify_weight_planification_data()
         except ValueError:
-            self.objective_weight = 0.0  # Valor por defecto si la conversión falla
-            #print("Entrada inválida para el peso objetivo. Debe ser un número. Convirtiendo a 0.0")
-
+            self.objective_weight = 0.0
 
     @rx.var
     def range_fat_percent(self) -> str:
@@ -119,13 +142,11 @@ class StatePlanification(rx.State):
          
          except:
             return 0.0
-    
 
     @rx.var
     def current_fat_percent(self) -> float:
          try:
             now_fat_percent= 1.39*self.now_imc + 0.16*25 - 10.34*float(self.gender) - 9
-            #print(now_fat_percent)
             return now_fat_percent
          
          except:
@@ -160,22 +181,14 @@ class StatePlanification(rx.State):
          except:
             return "0.0"
 
-
-
-
     def get_current_activity_level(self, level: str):
-        self.current_activity_level=self.activity_values[level]
+        self.saved_activity_level = level
 
     def get_objective_activity_level(self, level: str):
-        self.objective_activity_level=self.activity_values[level]
-        
-        # Forzar la actualización de objective_calories cuando cambie el nivel de actividad
-        self._update_objective_calories()
-
+        self.saved_objective_activity_level = level
 
     @rx.var
     def current_bm(self) -> float:
-        
         if self.gender=="1":
             bm= 10*self.last_weight + 6.25*self.last_height - 5*int(self.client_age_data) + 5
         elif self.gender=="0":
@@ -188,7 +201,6 @@ class StatePlanification(rx.State):
         else:
             return bm
 
-
     @rx.var
     def current_caloric_needs(self) -> float:
         calc= self.current_bm * self.current_activity_level
@@ -196,7 +208,6 @@ class StatePlanification(rx.State):
             return 0
         else:
             return calc
-    
 
     @rx.var
     def objective_caloric_needs(self) -> float:
@@ -205,12 +216,6 @@ class StatePlanification(rx.State):
             return 0
         else:
             return calc
-        
-    
-    def _update_objective_calories(self):
-        """Método auxiliar para actualizar objective_calories"""
-        return self.current_bm * self.objective_activity_level
-    
     
     @rx.var
     def reference_caloric_needs(self) -> str:
@@ -218,10 +223,9 @@ class StatePlanification(rx.State):
         reference2= self.current_bm * 2
 
         if reference1 and reference2 <0:
-            return 0
+            return "0-0 Kcal"
         else:
             return f"{reference1:.0f}-{reference2:.0f} Kcal"
-
 
     anterior_fat_percent: list = [20]
     fat_percent: list = [20]
@@ -233,7 +237,6 @@ class StatePlanification(rx.State):
     protein_percent: list = [30]
 
     def get_fat_percent(self, update_fat_percent):
-
         if self.hc_percent[0] <= 0 and update_fat_percent[0] > self.fat_percent[0]:
             total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
             diff= total_percent - 100
@@ -242,46 +245,35 @@ class StatePlanification(rx.State):
             self.protein_percent= [self.protein_percent[0] - diff]
 
         self.fat_percent= update_fat_percent
-
         self.percent_changes()
 
         if self.fat_percent[0]==100:
             self.protein_percent=[0]
             self.hc_percent=[0]
             self.fat_percent=[100]
-            diff=0
 
         self.anterior_fat_percent= self.fat_percent
-        
 
     def get_hc_percent(self, update_hc_percent):
-
         if self.fat_percent[0] <= 0 and update_hc_percent[0] > self.hc_percent[0]:
             self.fat_percent=[0]
-            print(update_hc_percent)
-            print(self.hc_percent)
             total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
             diff= total_percent - 100
             if diff<0:
                 diff= abs(diff)
             self.protein_percent= [self.protein_percent[0] - diff]
-            print(self.protein_percent)
 
         self.hc_percent= update_hc_percent
-
         self.percent_changes()
 
         if self.hc_percent[0]==100:
             self.protein_percent=[0]
             self.fat_percent=[0]
             self.hc_percent=[100]
-            diff=0
 
         self.anterior_hc_percent= self.hc_percent
-        
 
     def get_protein_percent(self, update_protein_percent):
-
         if self.hc_percent[0] <= 0 and update_protein_percent[0] > self.protein_percent[0]:
             self.hc_percent=[0]
             total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
@@ -290,9 +282,7 @@ class StatePlanification(rx.State):
                 diff= abs(diff)
             self.fat_percent= [self.fat_percent[0] - diff]
 
-
         self.protein_percent= update_protein_percent
-
         self.percent_changes()
 
         if self.protein_percent[0]==100:
@@ -301,9 +291,6 @@ class StatePlanification(rx.State):
             self.protein_percent=[100]
 
         self.anterior_protein_percent= self.protein_percent
-        
-
-
 
     @rx.var
     def fat_g_calc(self) -> float:
@@ -321,69 +308,46 @@ class StatePlanification(rx.State):
         else:
             return calc
 
-    
     @rx.var
     def protein_g_calc(self) -> float:
         calc= ((self.protein_percent[0] /100) * self.objective_caloric_needs) / 4
-
         if calc<0:
             return 0
         else:
             return calc
-    
-    
 
     hc_control= False
 
     def activate_hc_control(self):
         self.hc_control= True
-        # print(self.hc_control)
 
     def desactivate_hc_control(self):
         self.hc_control=False
-        # print(self.hc_control)
-
 
     def percent_changes(self):
-
-        # print("hc percent:", self.hc_percent)
         total_percent= self.fat_percent[0] + self.hc_percent[0] + self.protein_percent[0]
-        # print("total percent:", total_percent)
-        
-        # print("anterior fat percent:", self.anterior_fat_percent)
-        # print("fat percent:", self.fat_percent)
-
         diff= total_percent - 100
-        # print("diferencia:", diff, "\n")
         if diff<0:
             diff= abs(diff)
 
-        #For substracting hc percent when adding the others
+        # Lógica de ajuste de porcentajes (mantener la misma lógica que tenías)
         if self.hc_control==False:
             if (total_percent != 100 and self.anterior_fat_percent < self.fat_percent) or (total_percent != 100 and self.anterior_protein_percent < self.protein_percent):
                 self.hc_percent= [self.hc_percent[0] - diff]
-
             elif (total_percent == 100 and self.anterior_fat_percent < self.fat_percent) or (total_percent == 100 and self.anterior_protein_percent < self.protein_percent):
                 self.hc_percent= [self.hc_percent[0] - diff]
-
             elif (total_percent != 100 and self.anterior_fat_percent > self.fat_percent) or (total_percent != 100 and self.anterior_protein_percent > self.protein_percent):
                 self.hc_percent= [self.hc_percent[0] + diff]
-
             elif (total_percent == 100 and self.anterior_fat_percent > self.fat_percent) or (total_percent == 100 and self.anterior_protein_percent > self.protein_percent):
                 self.hc_percent= [self.hc_percent[0] + diff]
 
-
-        #For substracting the others when adding hc
         elif self.hc_control==True:
             if (total_percent != 100 and self.anterior_hc_percent < self.hc_percent):
                 self.fat_percent= [self.fat_percent[0] - diff]
-
             elif (total_percent == 100 and self.anterior_hc_percent < self.hc_percent):
                 self.fat_percent= [self.fat_percent[0] - diff]
-                
             elif (total_percent != 100 and self.anterior_hc_percent > self.hc_percent):
                 self.fat_percent= [self.fat_percent[0] + diff]
-
             elif (total_percent == 100 and self.anterior_hc_percent > self.hc_percent):
                 self.fat_percent= [self.fat_percent[0] + diff]
 
@@ -392,19 +356,10 @@ class StatePlanification(rx.State):
         elif self.hc_percent[0]<0:
             self.hc_percent=[0]
 
-        # print("total percent:", total_percent)
-        # print("hc percent ajustado:", self.hc_percent)
-
-
-        # print("-------------------")
-
-
-
     @rx.var
     def fat_g_kg(self) -> float:
         try:
             return self.fat_g_calc / self.last_weight
-        
         except ZeroDivisionError:
             return 0
     
@@ -422,7 +377,6 @@ class StatePlanification(rx.State):
         except ZeroDivisionError:
             return 0
 
-
     async def add_planification_data(self):
         with rx.session() as session:
             session.add(PlanificationDataModel(
@@ -435,40 +389,30 @@ class StatePlanification(rx.State):
                 protein_percent= 30
             ))
             session.commit()
-
-        print("funciona")
-    
-    saved_id: int
-    saved_client_id: int
-    saved_objective_weight: float
-    saved_activity_level: str
-    saved_objective_activity_level: str
-    saved_fat_percent: int
-    saved_hc_percent: int
-    saved_protein_percent: int
+        print("Datos de planificación creados")
 
     async def view_planification_data(self):
         with rx.session() as session:
-            records = session.exec(
+            record = session.exec(
                 select(PlanificationDataModel).where(PlanificationDataModel.client_id == self.client_id)
-            ).all()
+            ).first()
 
-            if records:
-                for record in records:
-                    print(record)
-                    self.saved_id= record.id
-                    self.saved_client_id= record.client_id
-                    self.saved_objective_weight= record.objective_weight
-                    self.saved_activity_level= record.activity_level
-                    self.saved_objective_activity_level= record.objective_activity_level
-                    self.saved_fat_percent= record.fat_percent
-                    self.saved_hc_percent= record.hc_percent
-                    self.saved_protein_percent= record.protein_percent
+            if record:
+                self.saved_id= record.id
+                self.saved_client_id= record.client_id
+                self.saved_objective_weight= record.objective_weight
+                self.saved_activity_level= record.activity_level
+                self.saved_objective_activity_level= record.objective_activity_level
+                self.saved_fat_percent= record.fat_percent
+                self.saved_hc_percent= record.hc_percent
+                self.saved_protein_percent= record.protein_percent
+                print("Datos cargados desde la base de datos:", record)
             
-            if not records:
+            if not record:
                 await self.add_planification_data()
+                # Después de crear, volver a cargar
+                await self.view_planification_data()
 
-    
     async def delete_planification_data(self):
         with rx.session() as session:
             records = session.exec(
@@ -476,20 +420,51 @@ class StatePlanification(rx.State):
             ).all()
 
             if records:
-                # Option 1: Delete each record individually
                 for record in records:
                     session.delete(record)
                 session.commit()
                 print("Datos de Planificación eliminados")
-        
 
-        
+    async def modify_percents_planification_data(self):
+        with rx.session() as session:
+            record = session.exec(
+                select(PlanificationDataModel).where(PlanificationDataModel.client_id == self.client_id)
+            ).first()
 
+            if record:
+                record.fat_percent= self.fat_percent[0]
+                record.hc_percent= self.hc_percent[0]
+                record.protein_percent= self.protein_percent[0]
+                session.add(record)
+                session.commit()
+                print("Porcentajes guardados")
 
+    async def modify_weight_planification_data(self):
+        with rx.session() as session:
+            record = session.exec(
+                select(PlanificationDataModel).where(PlanificationDataModel.client_id == self.client_id)
+            ).first()
 
+            if record:
+                record.objective_weight= self.objective_weight
+                session.add(record)
+                session.commit()
+                print("Peso guardado")
+
+    async def modify_levels_planification_data(self):
+        with rx.session() as session:
+            record = session.exec(
+                select(PlanificationDataModel).where(PlanificationDataModel.client_id == self.client_id)
+            ).first()
+
+            if record:
+                record.activity_level= self.saved_activity_level
+                record.objective_activity_level= self.saved_objective_activity_level
+                session.add(record)
+                session.commit()
+                print("Niveles de actividad guardados")
 
 def Planificacion() -> rx.Component:
-    
     return rx.box(
         rx.text("PLANIFICACIÓN"),
         rx.vstack(
@@ -509,9 +484,13 @@ def Planificacion() -> rx.Component:
                         rx.table.row_header_cell("Peso"),
                         rx.table.cell("-"),
                         rx.table.cell(StatePlanification.last_weight),
-                        rx.table.cell(rx.input(default_value=StatePlanification.saved_objective_weight.to_string(), on_change=[StatePlanification.set_objective_weight,
-                                                          StatePlanification.get_measurements,
-                                                          StatePlanification.get_client_data], width="4em")),
+                        rx.table.cell(
+                            rx.input(
+                                value=StatePlanification.saved_objective_weight.to_string(), 
+                                on_change=StatePlanification.set_objective_weight,
+                                width="4em"
+                            )
+                        ),
                         rx.table.cell(StatePlanification.reference_weight)
                     ),
                     rx.table.row(
@@ -550,8 +529,26 @@ def Planificacion() -> rx.Component:
                     rx.table.row(
                         rx.table.row_header_cell("Nivel de actividad física"),
                         rx.table.cell("-"),
-                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], default_value=StatePlanification.saved_activity_level, on_change=StatePlanification.get_current_activity_level)),
-                        rx.table.cell(rx.select(["No definido","Sedentario","Ligero","Moderado","Intenso"], default_value=StatePlanification.saved_objective_activity_level, on_change=StatePlanification.get_objective_activity_level)),
+                        rx.table.cell(
+                            rx.select(
+                                ["No definido","Sedentario","Ligero","Moderado","Intenso"], 
+                                value=StatePlanification.saved_activity_level, 
+                                on_change=[
+                                    StatePlanification.get_current_activity_level,
+                                    StatePlanification.modify_levels_planification_data
+                                ]
+                            )
+                        ),
+                        rx.table.cell(
+                            rx.select(
+                                ["No definido","Sedentario","Ligero","Moderado","Intenso"], 
+                                value=StatePlanification.saved_objective_activity_level, 
+                                on_change=[
+                                    StatePlanification.get_objective_activity_level,
+                                    StatePlanification.modify_levels_planification_data
+                                ]
+                            )
+                        ),
                         rx.table.cell("-")
                     ),
                     rx.table.row(
@@ -574,7 +571,6 @@ def Planificacion() -> rx.Component:
             style=SUBSECTION_STACK_STYLE
         ),
 
-
         rx.vstack(
             rx.text("DISTRIBUCIÓN DE MACRONUTRIENTES"),
             rx.table.root(
@@ -590,36 +586,63 @@ def Planificacion() -> rx.Component:
                 rx.table.body(
                     rx.table.row(
                         rx.table.row_header_cell("Grasas"),
-                        rx.table.cell(rx.vstack(
-                                        rx.flex(rx.heading(f"{StatePlanification.fat_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="yellow", min=0, max=100, step=1, default_value=StatePlanification.saved_fat_percent, value=StatePlanification.fat_percent, on_change=StatePlanification.get_fat_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
-                                        ),
-                                    justify="center"
-                                    ),
+                        rx.table.cell(
+                            rx.vstack(
+                                rx.flex(rx.heading(f"{StatePlanification.fat_percent:.0f} %"), justify="center", width="100%"), 
+                                rx.slider(
+                                    color_scheme="yellow", 
+                                    min=0, 
+                                    max=100, 
+                                    step=1, 
+                                    value=StatePlanification.fat_percent, 
+                                    on_change=StatePlanification.get_fat_percent.throttle(10), 
+                                    on_focus=StatePlanification.desactivate_hc_control
+                                ),
+                            ),
+                            justify="center"
+                        ),
                         rx.table.cell(f"{StatePlanification.fat_g_calc:.0f} g"),
                         rx.table.cell(f"{StatePlanification.fat_g_kg:.2f} g/kg"),
                         rx.table.cell("10 - 35%")
                     ),
                     rx.table.row(
                         rx.table.row_header_cell("Hidratos de carbono"),
-                        rx.table.cell(rx.vstack(
-                                        rx.flex(rx.heading(f"{StatePlanification.hc_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="green", min=0, max=100, step=1, default_value=StatePlanification.saved_hc_percent, value= StatePlanification.hc_percent, on_change=StatePlanification.get_hc_percent.throttle(10), on_focus=StatePlanification.activate_hc_control),
-                                        ),
-                                    justify="center"
-                                    ),                        
+                        rx.table.cell(
+                            rx.vstack(
+                                rx.flex(rx.heading(f"{StatePlanification.hc_percent:.0f} %"), justify="center", width="100%"), 
+                                rx.slider(
+                                    color_scheme="green", 
+                                    min=0, 
+                                    max=100, 
+                                    step=1, 
+                                    value=StatePlanification.hc_percent, 
+                                    on_change=StatePlanification.get_hc_percent.throttle(10), 
+                                    on_focus=StatePlanification.activate_hc_control
+                                ),
+                            ),
+                            justify="center"
+                        ),                        
                         rx.table.cell(f"{StatePlanification.hc_g_calc:.0f} g"),
                         rx.table.cell(f"{StatePlanification.hc_g_kg:.2f} g/kg"),
                         rx.table.cell("45 - 65%"),
                     ),
                     rx.table.row(
                         rx.table.row_header_cell("Proteínas"),
-                        rx.table.cell(rx.vstack(
-                                        rx.flex(rx.heading(f"{StatePlanification.protein_percent:.0f} %"), justify="center", width="100%"), 
-                                        rx.slider(color_scheme="pink", min=0, max=100, step=1, default_value=StatePlanification.saved_protein_percent, value= StatePlanification.protein_percent, on_change=StatePlanification.get_protein_percent.throttle(10), on_focus=StatePlanification.desactivate_hc_control),
-                                        ),
-                                    justify="center"
-                                    ),                        
+                        rx.table.cell(
+                            rx.vstack(
+                                rx.flex(rx.heading(f"{StatePlanification.protein_percent:.0f} %"), justify="center", width="100%"), 
+                                rx.slider(
+                                    color_scheme="pink", 
+                                    min=0, 
+                                    max=100, 
+                                    step=1, 
+                                    value=StatePlanification.protein_percent, 
+                                    on_change=StatePlanification.get_protein_percent.throttle(10), 
+                                    on_focus=StatePlanification.desactivate_hc_control
+                                ),
+                            ),
+                            justify="center"
+                        ),                        
                         rx.table.cell(f"{StatePlanification.protein_g_calc:.0f} g"),
                         rx.table.cell(f"{StatePlanification.protein_g_kg:.2f} g/kg"),
                         rx.table.cell("20 - 35%"),
@@ -627,10 +650,11 @@ def Planificacion() -> rx.Component:
                 ),
                 width="100%"
             ),
+            on_mouse_leave=StatePlanification.modify_percents_planification_data,
             style=SUBSECTION_STACK_STYLE
         ),
 
-
-
+        # Agregar este evento al cargar el componente
+        on_mount=StatePlanification.initialize_data,
         style=SECTION_CONTAINER_STYLE
     )
